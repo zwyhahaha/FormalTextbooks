@@ -1,10 +1,21 @@
 """PDF preprocessing pipeline: convert PDF to markdown and split into sections."""
+import datetime
 import json
 import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+LOG_FILE = Path("logs/pipeline.log")
+
+
+def _log(event: str, data: dict) -> None:
+    """Append a JSON-Lines entry to logs/pipeline.log."""
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "event": event, **data}
+    with LOG_FILE.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
 
 
 MARKER_SINGLE_FULL_PATH = (
@@ -143,6 +154,8 @@ def preprocess(pdf_path: Path) -> None:
     paper_dir = Path("papers") / paper_name
     paper_dir.mkdir(parents=True, exist_ok=True)
 
+    _log("preprocess_start", {"pdf": str(pdf_path), "paper": paper_name})
+
     print(f"[preprocess] Converting {pdf_path} to markdown …")
     tmp_output = paper_dir / "_marker_tmp"
     md_path = convert_pdf_to_markdown(pdf_path, tmp_output)
@@ -159,6 +172,12 @@ def preprocess(pdf_path: Path) -> None:
     for p in written:
         print(f"[preprocess]   wrote {p}")
 
+    _log("preprocess_done", {
+        "paper": paper_name,
+        "sections_count": len(sections),
+        "section_titles": [s["title"] for s in sections],
+        "output_dir": str(paper_dir / "sections"),
+    })
     print("[preprocess] Done.")
 
 

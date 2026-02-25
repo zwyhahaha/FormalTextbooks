@@ -4,30 +4,106 @@
 Formalize optimization theorems from papers/lecture notes into verified Lean 4 proofs
 using optlib + mathlib4.
 
+---
+
+## Quick Start
+
+### Workflow A — Informal proof → Lean 4
+```
+User: "Formalize the proof in sample-informal-proof.md"
+  → Claude reads the file
+  → Creates proofs/<title>/TheoremName.lean with sorry placeholders
+  → Run /lean4:autoprove to fill proofs
+  → Run /lean4:checkpoint to commit verified result
+  → Append entry to logs/proofs.log
+```
+
+### Workflow B — PDF → Sections → Prove a theorem
+```bash
+# Step 1: drop the PDF in place
+cp my_paper.pdf papers/my_paper/original.pdf
+
+# Step 2: preprocess (converts + splits into sections)
+python scripts/preprocess.py papers/my_paper/original.pdf
+# → writes papers/my_paper/full.md
+# → writes papers/my_paper/sections/01_intro.md, 02_convergence.md, ...
+# → appends entry to logs/pipeline.log
+
+# Step 3: inspect sections
+ls papers/my_paper/sections/
+cat papers/my_paper/sections/02_convergence.md
+
+# Step 4: in Claude Code, ask:
+# "Prove Theorem 2.1 from papers/my_paper/sections/02_convergence.md"
+#   → Claude reads the section, creates proofs/my_paper/Theorem21.lean
+#   → Run /lean4:autoprove or /lean4:prove
+#   → Run /lean4:checkpoint
+#   → Append entry to logs/proofs.log
+```
+
+### Demo (already preprocessed — no PDF needed)
+```
+# The demo_lecture paper is already split. Try:
+"Prove Theorem 2.1 from papers/demo_lecture/sections/02_gradient_descent.md"
+```
+
+---
+
 ## Lean Setup
 - Toolchain: v4.13.0 (pinned in `lean-toolchain`, required by optlib)
 - Dependencies: optlib (optimization library), mathlib4 (via optlib's dependency)
 - Before first use: `lake exe cache get` then `lake build`
 - Always `lake build` before starting a proving session (lean-lsp-mcp needs it)
 
-## Phase 1: Preprocessing a Paper (run once per PDF)
+---
 
-```bash
-python scripts/preprocess.py papers/<title>/original.pdf
+## Logging
+
+### Pipeline log — `logs/pipeline.log`
+Auto-written by `scripts/preprocess.py` in JSON Lines format:
+```json
+{"ts": "2026-02-25T10:00:00", "event": "preprocess_start", "pdf": "papers/x/original.pdf", "paper": "x"}
+{"ts": "2026-02-25T10:05:00", "event": "preprocess_done", "paper": "x", "sections_count": 4, "section_titles": ["Intro", ...], "output_dir": "papers/x/sections"}
 ```
 
-Outputs:
-- `papers/<title>/full.md` — full paper as markdown
-- `papers/<title>/sections/NN_<section>.md` — one file per section
+### Proof log — `logs/proofs.log`
+**Claude must append an entry here after every proof session.** Format (one JSON object per line):
+```json
+{"ts": "2026-02-25T10:30:00", "event": "proof_session", "source": "papers/x/sections/02_convergence.md", "theorem": "TheoremName", "lean_file": "proofs/x/TheoremName.lean", "status": "proved", "notes": "used optlib gradient_method"}
+```
+Status values: `"proved"` (no sorry, lake build passes), `"partial"` (some sorry remain), `"failed"`.
 
-## Phase 2: Proving Workflow
+**To write a proof log entry**, run this at the end of each session:
+```bash
+python3 -c "
+import json, datetime
+entry = {
+  'ts': datetime.datetime.now().isoformat(timespec='seconds'),
+  'event': 'proof_session',
+  'source': 'papers/<title>/sections/<file>.md',
+  'theorem': '<TheoremName>',
+  'lean_file': 'proofs/<title>/<TheoremName>.lean',
+  'status': 'proved',  # or partial / failed
+  'notes': '<brief note>'
+}
+with open('logs/proofs.log', 'a') as f:
+    f.write(json.dumps(entry) + '\n')
+print('Logged.')
+"
+```
+
+---
+
+## Proving Workflow Detail
 
 ### Starting a proof session
 1. Read the target section file: `papers/<title>/sections/NN_<section>.md`
 2. Identify the theorem to formalize (statement + hypotheses)
-3. Create `proofs/<title>/TheoremName.lean` with imports + theorem + `sorry` placeholder
-4. Run `/lean4:autoprove` for autonomous proof search, or `/lean4:prove` to stay interactive
-5. Run `/lean4:checkpoint` when done to verify build + axioms + commit
+3. **Check optlib first**: `ls .lake/packages/optlib/Optlib/` — the theorem may already exist
+4. Create `proofs/<title>/TheoremName.lean` with imports + theorem + `sorry` placeholder
+5. Run `/lean4:autoprove` for autonomous proof search, or `/lean4:prove` to stay interactive
+6. Run `/lean4:checkpoint` when done to verify build + axioms + commit
+7. Append entry to `logs/proofs.log`
 
 ### Proof file template
 ```lean
@@ -35,6 +111,7 @@ import Mathlib
 import Optlib
 
 -- [Theorem name from paper]
+-- Source: papers/<title>/sections/NN_<section>.md
 -- Informal statement: [paste from section file]
 theorem TheoremName (hyp1 : ...) (hyp2 : ...) : conclusion := by
   sorry
@@ -50,18 +127,23 @@ theorem TheoremName (hyp1 : ...) (hyp2 : ...) : conclusion := by
 | `lean_leanfinder` | Semantic lemma search for a proof goal |
 | `lean_multi_attempt` | Try multiple tactics, pick the first that works |
 
+---
+
 ## Key Libraries
 - **Optlib**: convex functions, subgradients, L-smooth functions, gradient descent convergence,
-  proximal operators, KKT conditions, ADMM — see `.lake/packages/optlib/Optlib/` for module structure
+  proximal operators, KKT conditions, ADMM
+  → browse: `.lake/packages/optlib/Optlib/`
+  → key modules: `Algorithm/GD/`, `Function/Convex.lean`, `Function/Lsmooth.lean`
 - **Mathlib**: analysis, topology, linear algebra foundations
 
 ## File Conventions
 - One theorem per `.lean` file in `proofs/<paper-title>/`
 - Name files after the theorem (e.g., `GradientDescentConvergence.lean`)
-- Always import `Mathlib` and `Optlib` at top
+- Always import `Mathlib` and `Optlib` (or specific submodules) at top
 
 ## Common Pitfalls
 - lean-lsp-mcp will timeout if `lake build` hasn't run — always build first
 - optlib uses Lean 4.13.0 syntax; don't upgrade lean-toolchain without checking optlib compat
 - `lake exe cache get` must run after `lake update` to avoid recompiling mathlib from scratch
 - marker_single CLI may not be on PATH; the preprocessing script handles this automatically
+- Check optlib before proving — many optimization theorems are already formalized there
