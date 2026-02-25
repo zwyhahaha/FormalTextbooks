@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(which lean:*)",
+      "Bash(which lean-mcp-server:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(ls:*)",
+      "Bash(# Check for optlib on GitHub - look for local mathlib4/optlib\nfind ~/.elan -name \"*.lean\" 2>/dev/null | grep -i \"optlib\" | head -5\nls ~/Documents/ 2>/dev/null | grep -i \"optlib\\\\|lean\\\\|math\"\n# Check if there's a lean MCP server package\nnpm search lean mcp 2>/dev/null | head -5 || true)",
+      "Bash(grep:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "Bash(which uv:*)",
+      "Bash(cd:*)",
+      "Bash(cd \"/Users/apple/Documents/formal verification/prover\" && lake update 2>&1)",
+      "Bash(lean:*)",
+      "Bash(cd \"/Users/apple/Documents/formal verification/prover\" && lake build 2>&1)"
+    ]
+  }
+}
