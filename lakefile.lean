@@ -10,3 +10,7 @@ require optlib from git "https://github.com/optsuite/optlib" @ "main"
 
 @[default_target]
 lean_lib «Prover» where
+
+lean_lib «Proofs» where
+  srcDir := "."
+  roots := #[`proofs.demo.GradientDescentConvergence]
