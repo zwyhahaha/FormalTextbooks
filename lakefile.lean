@@ -13,4 +13,5 @@ lean_lib «Prover» where
 
 lean_lib «Proofs» where
   srcDir := "."
-  roots := #[`proofs.demo.GradientDescentConvergence]
+  roots := #[`proofs.demo.GradientDescentConvergence,
+             `proofs.demo_lecture.Theorem21]
