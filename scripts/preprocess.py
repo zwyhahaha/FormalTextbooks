@@ -1,4 +1,5 @@
 """PDF preprocessing pipeline: convert PDF to markdown and split into sections."""
+import json
 import re
 import shutil
 import subprocess
@@ -120,9 +121,9 @@ def write_section_files(
 
         front_matter = (
             "---\n"
-            f"paper: {paper_name}\n"
+            f"paper: {json.dumps(paper_name)}\n"
             f"section: {section['number']}\n"
-            f"title: {section['title']}\n"
+            f"title: {json.dumps(section['title'])}\n"
             "---\n"
             "\n"
         )
