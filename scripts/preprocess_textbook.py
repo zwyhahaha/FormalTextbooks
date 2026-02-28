@@ -24,6 +24,120 @@ _THEOREM_RE = re.compile(
 )
 
 
+def title_to_slug(title: str) -> str:
+    """Lowercase, replace non-alphanumeric runs with '_', strip edges, max 40 chars."""
+    slug = re.sub(r'[^a-z0-9]+', '_', title.lower()).strip('_')
+    return slug[:40]
+
+
+def _read_existing_lean_files(path: Path) -> list[dict]:
+    """Parse YAML front-matter from an existing section file and return lean_files list."""
+    text = path.read_text(encoding='utf-8')
+    if not text.startswith('---'):
+        return []
+    end = text.find('\n---', 3)
+    if end == -1:
+        return []
+    try:
+        fm = yaml.safe_load(text[3:end])
+        return fm.get('lean_files', []) or []
+    except yaml.YAMLError:
+        return []
+
+
+def write_section_files(subsections: list[dict], paper_dir: Path, book: str) -> list[Path]:
+    """Write each subsection to paper_dir/sections/{ch:02d}_{sub:02d}_{slug}.md.
+
+    Preserves existing lean_files status on re-runs.
+    Returns list of written Paths.
+    """
+    sections_dir = paper_dir / 'sections'
+    sections_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+
+    for sub in subsections:
+        slug = title_to_slug(sub['subsection_title'])
+        filename = f"{sub['chapter']:02d}_{sub['subsection']:02d}_{slug}.md"
+        out_path = sections_dir / filename
+
+        theorems = detect_theorems(sub['content'])
+
+        # Preserve existing lean_files status from previous run
+        existing_lean: dict[str, str] = {}
+        if out_path.exists():
+            for lf in _read_existing_lean_files(out_path):
+                existing_lean[lf['id']] = lf.get('status', 'pending')
+
+        lean_files = [
+            {
+                'id': t['id'],
+                'path': f"proofs/{book}/{t['id'].replace(' ', '').replace('.', '')}.lean",
+                'status': existing_lean.get(t['id'], 'pending'),
+            }
+            for t in theorems
+        ]
+
+        fm = {
+            'book': book,
+            'chapter': sub['chapter'],
+            'chapter_title': sub['chapter_title'],
+            'subsection': sub['subsection'],
+            'subsection_title': sub['subsection_title'],
+            'section_id': sub['section_id'],
+            'theorems': theorems,
+            'lean_files': lean_files,
+        }
+        front_matter = '---\n' + yaml.dump(fm, allow_unicode=True, sort_keys=False) + '---\n\n'
+        out_path.write_text(front_matter + sub['content'], encoding='utf-8')
+        written.append(out_path)
+
+    return written
+
+
+def write_index(paper_dir: Path) -> Path:
+    """Regenerate paper_dir/index.md from all section files."""
+    sections_dir = paper_dir / 'sections'
+    rows = []
+
+    for md_file in sorted(sections_dir.glob('*.md')):
+        text = md_file.read_text(encoding='utf-8')
+        if not text.startswith('---'):
+            continue
+        end = text.find('\n---', 3)
+        if end == -1:
+            continue
+        try:
+            fm = yaml.safe_load(text[3:end])
+        except yaml.YAMLError:
+            continue
+
+        section_id = fm.get('section_id', '')
+        sub_title = fm.get('subsection_title', '')
+        for lf in (fm.get('lean_files') or []):
+            rows.append({
+                'id': lf['id'],
+                'section_id': section_id,
+                'subsection_title': sub_title,
+                'path': lf.get('path', ''),
+                'status': lf.get('status', 'pending'),
+            })
+
+    header = (
+        '# Theorem & Lemma Index\n\n'
+        '| ID | Section | Subsection Title | Lean file | Status |\n'
+        '|----|---------|------------------|-----------|--------|\n'
+    )
+    table_rows = ''.join(
+        f"| {r['id']} | {r['section_id']} | {r['subsection_title']} "
+        f"| {r['path']} | {r['status']} |\n"
+        for r in rows
+    )
+
+    index_path = paper_dir / 'index.md'
+    index_path.write_text(header + table_rows, encoding='utf-8')
+    return index_path
+
+
 def detect_theorems(content: str) -> list[dict]:
     """Find Theorem/Lemma/Proposition/Corollary/Definition X.Y in content.
 

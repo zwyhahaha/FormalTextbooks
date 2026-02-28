@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-from preprocess_textbook import split_subsections, detect_theorems
+from preprocess_textbook import split_subsections, detect_theorems, write_section_files, write_index
 
 
 # --- detect_theorems tests ---
@@ -46,6 +46,85 @@ def test_detect_empty():
 
 def test_detect_no_theorems():
     assert detect_theorems("Just some regular prose.") == []
+
+
+# --- write_section_files tests ---
+
+def _make_sub(ch=1, sub=1, ch_title="Intro", sub_title="Topic",
+              content="## 1.1 Topic\n\nText."):
+    return {
+        'chapter': ch, 'chapter_title': ch_title,
+        'subsection': sub, 'subsection_title': sub_title,
+        'section_id': f'{ch}.{sub}', 'content': content,
+    }
+
+
+def test_write_creates_file():
+    with tempfile.TemporaryDirectory() as tmp:
+        paper_dir = Path(tmp)
+        write_section_files([_make_sub()], paper_dir, book="Bubeck15")
+        files = list((paper_dir / 'sections').iterdir())
+        assert len(files) == 1
+        assert files[0].name == '01_01_topic.md'
+
+
+def test_write_yaml_frontmatter():
+    with tempfile.TemporaryDirectory() as tmp:
+        paper_dir = Path(tmp)
+        write_section_files([_make_sub()], paper_dir, book="Bubeck15")
+        content = (paper_dir / 'sections' / '01_01_topic.md').read_text()
+        # Check key fields are present (not quoting-style dependent)
+        assert 'book:' in content and 'Bubeck15' in content
+        assert 'chapter: 1' in content
+        assert 'section_id:' in content and '1.1' in content
+
+
+def test_write_preserves_lean_files_on_rerun():
+    with tempfile.TemporaryDirectory() as tmp:
+        paper_dir = Path(tmp)
+        # Use content that contains Theorem 1.1 so it appears in lean_files
+        sub = _make_sub(content="## 1.1 Topic\n\nTheorem 1.1 (Key result). Proof.")
+        write_section_files([sub], paper_dir, book="Bubeck15")
+        path = paper_dir / 'sections' / '01_01_topic.md'
+        # Manually update status to 'proved' in the file
+        text = path.read_text()
+        text = text.replace('status: pending', 'status: proved')
+        path.write_text(text)
+        # Re-run: should preserve proved status
+        write_section_files([sub], paper_dir, book="Bubeck15")
+        new_text = path.read_text()
+        assert 'proved' in new_text
+
+
+# --- write_index tests ---
+
+def test_write_index_creates_file():
+    with tempfile.TemporaryDirectory() as tmp:
+        paper_dir = Path(tmp)
+        sub = _make_sub(content="## 1.1 Topic\n\nTheorem 1.1 (Key result). Proof here.")
+        write_section_files([sub], paper_dir, book="Bubeck15")
+        write_index(paper_dir)
+        assert (paper_dir / 'index.md').exists()
+
+
+def test_write_index_contains_theorem():
+    with tempfile.TemporaryDirectory() as tmp:
+        paper_dir = Path(tmp)
+        sub = _make_sub(content="## 1.1 Topic\n\nTheorem 1.1 (Key result). Proof here.")
+        write_section_files([sub], paper_dir, book="Bubeck15")
+        write_index(paper_dir)
+        index_text = (paper_dir / 'index.md').read_text()
+        assert 'Theorem 1.1' in index_text
+        assert '1.1' in index_text
+
+
+def test_write_index_empty_sections():
+    with tempfile.TemporaryDirectory() as tmp:
+        paper_dir = Path(tmp)
+        (paper_dir / 'sections').mkdir()
+        write_index(paper_dir)
+        index_text = (paper_dir / 'index.md').read_text()
+        assert '# Theorem' in index_text
 
 
 # --- split_subsections tests ---
