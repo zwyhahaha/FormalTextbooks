@@ -24,6 +24,94 @@ _THEOREM_RE = re.compile(
 )
 
 
+def _log(event: str, data: dict) -> None:
+    """Append JSON-Lines entry to logs/pipeline.log."""
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    entry = {'ts': datetime.datetime.now().isoformat(timespec='seconds'), 'event': event, **data}
+    with LOG_FILE.open('a', encoding='utf-8') as f:
+        f.write(json.dumps(entry) + '\n')
+
+
+def convert_pdf_to_markdown(pdf_path: Path, output_dir: Path) -> Path:
+    """Convert PDF to markdown via marker_single. Returns path to .md file."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    candidates = [
+        [MARKER_SINGLE_FULL_PATH, str(pdf_path), '--output_dir', str(output_dir)],
+        ['marker_single', str(pdf_path), '--output_dir', str(output_dir)],
+        ['marker', str(pdf_path), '--output_dir', str(output_dir)],
+    ]
+    last_error = None
+    for cmd in candidates:
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                stem = pdf_path.stem
+                md_files = list(output_dir.rglob(f'{stem}.md')) or list(output_dir.rglob('*.md'))
+                if md_files:
+                    return md_files[0]
+            last_error = result.stderr or f'exit code {result.returncode}'
+        except FileNotFoundError as exc:
+            last_error = str(exc)
+    raise RuntimeError(f'marker_single failed: {last_error}')
+
+
+def preprocess_textbook(pdf_path: Path, chapter: int | None = None) -> None:
+    """Main entry point: convert PDF, split, write section files and index."""
+    pdf_path = Path(pdf_path)
+    if not pdf_path.exists():
+        raise FileNotFoundError(f'PDF not found: {pdf_path}')
+
+    book = pdf_path.stem
+    paper_dir = Path('papers') / book
+    paper_dir.mkdir(parents=True, exist_ok=True)
+
+    _log('preprocess_textbook_start', {'pdf': str(pdf_path), 'book': book})
+    print(f'[textbook] Converting {pdf_path} …')
+
+    tmp_dir = paper_dir / '_marker_tmp'
+    md_path = convert_pdf_to_markdown(pdf_path, tmp_dir)
+
+    full_md = paper_dir / 'full.md'
+    shutil.copy2(md_path, full_md)
+    print(f'[textbook] Full markdown → {full_md}')
+
+    markdown = full_md.read_text(encoding='utf-8')
+    subsections = split_subsections(markdown)
+
+    if chapter is not None:
+        subsections = [s for s in subsections if s['chapter'] == chapter]
+        print(f'[textbook] Filtered to chapter {chapter}: {len(subsections)} subsection(s)')
+
+    print(f'[textbook] {len(subsections)} subsection(s) found')
+    written = write_section_files(subsections, paper_dir, book=book)
+    for p in written:
+        print(f'[textbook]   wrote {p}')
+
+    index_path = write_index(paper_dir)
+    print(f'[textbook] Index → {index_path}')
+
+    all_theorems = sum(len(s.get('theorems', [])) for s in subsections)
+    _log('preprocess_textbook_done', {
+        'book': book,
+        'chapter_filter': chapter,
+        'subsections_count': len(subsections),
+        'theorems_count': all_theorems,
+        'output_dir': str(paper_dir / 'sections'),
+    })
+    print('[textbook] Done.')
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Preprocess textbook PDF into subsection markdown.')
+    parser.add_argument('pdf', help='Path to PDF file')
+    parser.add_argument('--chapter', type=int, default=None,
+                        help='Process only this chapter number')
+    args = parser.parse_args()
+    preprocess_textbook(Path(args.pdf), chapter=args.chapter)
+
+
 def title_to_slug(title: str) -> str:
     """Lowercase, replace non-alphanumeric runs with '_', strip edges, max 40 chars."""
     slug = re.sub(r'[^a-z0-9]+', '_', title.lower()).strip('_')
