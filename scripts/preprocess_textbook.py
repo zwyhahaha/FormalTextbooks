@@ -32,9 +32,79 @@ def _log(event: str, data: dict) -> None:
         f.write(json.dumps(entry) + '\n')
 
 
-def convert_pdf_to_markdown(pdf_path: Path, output_dir: Path) -> Path:
-    """Convert PDF to markdown via marker_single. Returns path to .md file."""
+def _pdfminer_to_markdown(pdf_path: Path) -> str:
+    """Fast fallback: extract text with pdfminer and inject markdown headers.
+
+    Detects:
+    - Chapter:    a lone digit line followed by a title line → # N Title
+    - Subsection: 'X.Y. Title' or 'X.Y Title' patterns → ## X.Y Title
+
+    Skips ToC entries (lines ending with a page number like '. 233' or '. . . 234').
+    Quality is lower than marker_single (no LaTeX rendering) but instant.
+    """
+    from pdfminer.high_level import extract_text as _extract
+    text = _extract(str(pdf_path))
+
+    # Subsection: X.Y. Title OR X.Y Title — title must end with a non-digit
+    # (excludes ToC lines ending with page numbers like '1.1 Some title . 233')
+    _SEC_PAT = re.compile(
+        r'^(\d+)\.(\d+)\.?\s+([A-Za-z][^\n]{3,80}[^\d\s])\s*$'
+    )
+    _CH_NUM_PAT = re.compile(r'^(\d+)$')
+    # A line that is just a standalone page number (1–4 digits)
+    _PAGE_NUM_PAT = re.compile(r'^\d{1,4}$')
+
+    lines = text.split('\n')
+    result: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
+        stripped = line.strip()
+
+        # Skip standalone page numbers that follow section headers
+        if _PAGE_NUM_PAT.fullmatch(stripped):
+            # Only skip if the previous non-empty result line was a ## header
+            prev = next((r for r in reversed(result) if r.strip()), '')
+            if prev.startswith('## ') or prev.startswith('# '):
+                i += 1
+                continue
+
+        # Chapter: lone digit followed by a non-digit title on the next line
+        if _CH_NUM_PAT.fullmatch(stripped) and i + 1 < len(lines):
+            next_stripped = lines[i + 1].strip()
+            if (next_stripped and not next_stripped[0].isdigit()
+                    and len(next_stripped) > 3 and not _PAGE_NUM_PAT.fullmatch(next_stripped)):
+                result.append(f'# {stripped} {next_stripped}')
+                i += 2
+                continue
+
+        # Subsection header (excludes ToC entries ending with page numbers)
+        m = _SEC_PAT.match(stripped)
+        if m:
+            result.append(f'## {m.group(1)}.{m.group(2)} {m.group(3)}')
+            i += 1
+            continue
+
+        result.append(line)
+        i += 1
+    return '\n'.join(result)
+
+
+def convert_pdf_to_markdown(pdf_path: Path, output_dir: Path,
+                             fast: bool = False) -> Path:
+    """Convert PDF to markdown. Returns path to .md file.
+
+    If fast=True, uses pdfminer (instant, lower quality).
+    Otherwise tries marker_single (15-30 min, ML-quality).
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    if fast:
+        md_text = _pdfminer_to_markdown(pdf_path)
+        out = output_dir / f'{pdf_path.stem}.md'
+        out.write_text(md_text, encoding='utf-8')
+        return out
+
     candidates = [
         [MARKER_SINGLE_FULL_PATH, str(pdf_path), '--output_dir', str(output_dir)],
         ['marker_single', str(pdf_path), '--output_dir', str(output_dir)],
@@ -55,7 +125,8 @@ def convert_pdf_to_markdown(pdf_path: Path, output_dir: Path) -> Path:
     raise RuntimeError(f'marker_single failed: {last_error}')
 
 
-def preprocess_textbook(pdf_path: Path, chapter: int | None = None) -> None:
+def preprocess_textbook(pdf_path: Path, chapter: int | None = None,
+                         fast: bool = False) -> None:
     """Main entry point: convert PDF, split, write section files and index."""
     pdf_path = Path(pdf_path)
     if not pdf_path.exists():
@@ -66,14 +137,17 @@ def preprocess_textbook(pdf_path: Path, chapter: int | None = None) -> None:
     paper_dir.mkdir(parents=True, exist_ok=True)
 
     _log('preprocess_textbook_start', {'pdf': str(pdf_path), 'book': book})
-    print(f'[textbook] Converting {pdf_path} …')
-
-    tmp_dir = paper_dir / '_marker_tmp'
-    md_path = convert_pdf_to_markdown(pdf_path, tmp_dir)
 
     full_md = paper_dir / 'full.md'
-    shutil.copy2(md_path, full_md)
-    print(f'[textbook] Full markdown → {full_md}')
+    if full_md.exists():
+        print(f'[textbook] Reusing cached markdown at {full_md} (delete to reconvert)')
+    else:
+        mode = 'pdfminer (fast)' if fast else 'marker_single'
+        print(f'[textbook] Converting {pdf_path} via {mode} …')
+        tmp_dir = paper_dir / '_marker_tmp'
+        md_path = convert_pdf_to_markdown(pdf_path, tmp_dir, fast=fast)
+        shutil.copy2(md_path, full_md)
+        print(f'[textbook] Full markdown → {full_md}')
 
     markdown = full_md.read_text(encoding='utf-8')
     subsections = split_subsections(markdown)
@@ -99,17 +173,6 @@ def preprocess_textbook(pdf_path: Path, chapter: int | None = None) -> None:
         'output_dir': str(paper_dir / 'sections'),
     })
     print('[textbook] Done.')
-
-
-if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(
-        description='Preprocess textbook PDF into subsection markdown.')
-    parser.add_argument('pdf', help='Path to PDF file')
-    parser.add_argument('--chapter', type=int, default=None,
-                        help='Process only this chapter number')
-    args = parser.parse_args()
-    preprocess_textbook(Path(args.pdf), chapter=args.chapter)
 
 
 def title_to_slug(title: str) -> str:
@@ -273,7 +336,7 @@ def split_subsections(markdown: str) -> list[dict]:
     if not subsection_headers:
         return []
 
-    result = []
+    raw: list[dict] = []
     for idx, match in enumerate(subsection_headers):
         ch_num, ch_title = chapter_at(match.start())
         sub_num = int(match.group(2))
@@ -283,7 +346,7 @@ def split_subsections(markdown: str) -> list[dict]:
         start = match.start()
         end = (subsection_headers[idx + 1].start()
                if idx + 1 < len(subsection_headers) else len(markdown))
-        result.append({
+        raw.append({
             'chapter': actual_ch,
             'chapter_title': ch_title,
             'subsection': sub_num,
@@ -291,4 +354,25 @@ def split_subsections(markdown: str) -> list[dict]:
             'section_id': f'{actual_ch}.{sub_num}',
             'content': markdown[start:end].rstrip(),
         })
-    return result
+
+    # Deduplicate: running page headers produce duplicate section_ids.
+    # Keep the entry with the most content (longest content = real section body).
+    seen: dict[str, int] = {}
+    for i, sub in enumerate(raw):
+        sid = sub['section_id']
+        if sid not in seen or len(sub['content']) > len(raw[seen[sid]]['content']):
+            seen[sid] = i
+    return [raw[i] for i in sorted(seen.values())]
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Preprocess textbook PDF into subsection markdown.')
+    parser.add_argument('pdf', help='Path to PDF file')
+    parser.add_argument('--chapter', type=int, default=None,
+                        help='Process only this chapter number')
+    parser.add_argument('--fast', action='store_true',
+                        help='Use pdfminer instead of marker_single (instant, lower quality)')
+    args = parser.parse_args()
+    preprocess_textbook(Path(args.pdf), chapter=args.chapter, fast=args.fast)
