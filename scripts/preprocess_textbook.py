@@ -17,6 +17,31 @@ MARKER_SINGLE_FULL_PATH = (
 
 _CHAPTER_RE = re.compile(r'^# (?:(\d+)\s+)?(.+)$', re.MULTILINE)
 _SUBSECTION_RE = re.compile(r'^## (\d+)\.(\d+)\s+(.+)$', re.MULTILINE)
+_THEOREM_RE = re.compile(
+    r'\b(Theorem|Lemma|Proposition|Corollary|Definition)\s+(\d+\.\d+)'
+    r'\s*(?:\(([^)]+)\))?',
+    re.MULTILINE
+)
+
+
+def detect_theorems(content: str) -> list[dict]:
+    """Find Theorem/Lemma/Proposition/Corollary/Definition X.Y in content.
+
+    Returns list of {id, label} dicts. label is empty string if no parenthetical.
+    Deduplicates by id (first occurrence wins).
+    """
+    seen: set[str] = set()
+    result = []
+    for m in _THEOREM_RE.finditer(content):
+        thm_id = f'{m.group(1)} {m.group(2)}'
+        if thm_id in seen:
+            continue
+        seen.add(thm_id)
+        result.append({
+            'id': thm_id,
+            'label': (m.group(3) or '').strip(),
+        })
+    return result
 
 
 def split_subsections(markdown: str) -> list[dict]:

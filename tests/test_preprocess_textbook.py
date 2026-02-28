@@ -6,8 +6,49 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-from preprocess_textbook import split_subsections
+from preprocess_textbook import split_subsections, detect_theorems
 
+
+# --- detect_theorems tests ---
+
+def test_detect_basic():
+    content = "See Theorem 3.2 for the main result."
+    thms = detect_theorems(content)
+    assert len(thms) == 1
+    assert thms[0]['id'] == 'Theorem 3.2'
+    assert thms[0]['label'] == ''
+
+
+def test_detect_with_label():
+    content = "Lemma 1.1 (Projection onto convex set). Let $C$ be convex."
+    thms = detect_theorems(content)
+    assert len(thms) == 1
+    assert thms[0]['id'] == 'Lemma 1.1'
+    assert thms[0]['label'] == 'Projection onto convex set'
+
+
+def test_detect_multiple():
+    content = """
+Theorem 3.2. GD converges.
+Corollary 3.3 (Rate). The rate is O(1/k).
+Definition 4.1. A function is L-smooth if...
+"""
+    thms = detect_theorems(content)
+    ids = [t['id'] for t in thms]
+    assert 'Theorem 3.2' in ids
+    assert 'Corollary 3.3' in ids
+    assert 'Definition 4.1' in ids
+
+
+def test_detect_empty():
+    assert detect_theorems("") == []
+
+
+def test_detect_no_theorems():
+    assert detect_theorems("Just some regular prose.") == []
+
+
+# --- split_subsections tests ---
 
 def test_split_empty():
     assert split_subsections("") == []
