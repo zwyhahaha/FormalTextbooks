@@ -49,6 +49,69 @@ cat papers/my_paper/sections/02_convergence.md
 
 ---
 
+### Workflow C — Textbook → Subsections → Prove a theorem
+
+Use `scripts/preprocess_textbook.py` for textbooks (subsection-level splitting with theorem
+detection and a master index). Unlike Workflow B, each output file covers one subsection
+(e.g. §1.1, §1.2) rather than one chapter.
+
+```bash
+# Step 1: fast unit test — process only Chapter 1 (instant, pdfminer quality)
+python3 scripts/preprocess_textbook.py textbook/Bubeck15.pdf --chapter 1 --fast
+
+# Step 2: inspect output
+ls papers/Bubeck15/sections/          # one file per subsection
+cat papers/Bubeck15/index.md          # master theorem tracker
+
+# Step 3: full book, high quality (uses marker_single — takes 15-30 min)
+# Delete papers/Bubeck15/full.md first if you want to reconvert
+python3 scripts/preprocess_textbook.py textbook/Bubeck15.pdf
+
+# Step 4: formalize a theorem from a subsection
+# "Prove Proposition 1.1 from papers/Bubeck15/sections/01_02_basic_properties_of_convexity.md"
+#   → /lean4:autoprove or /lean4:prove
+#   → /lean4:checkpoint
+#   → update lean_files status in section file + rerun script to refresh index.md
+```
+
+#### Output structure (`papers/Bubeck15/`)
+```
+full.md                   ← full converted markdown (cached; delete to reconvert)
+index.md                  ← master theorem/lemma tracker (regenerated each run)
+sections/
+  01_01_<slug>.md         ← YAML front-matter + subsection content
+  01_02_<slug>.md
+  ...
+```
+
+#### Per-section YAML front-matter
+```yaml
+---
+book: Bubeck15
+chapter: 1
+chapter_title: Introduction
+subsection: 2
+subsection_title: Basic properties of convexity
+section_id: '1.2'
+theorems:
+  - {id: 'Proposition 1.1', label: Projection onto convex set}
+lean_files:
+  - {id: 'Proposition 1.1', path: proofs/Bubeck15/Proposition11.lean, status: pending}
+---
+```
+Status values for `lean_files`: `pending`, `partial`, `proved`. Re-running the script
+**preserves existing status values** — it only adds new theorems as `pending`.
+
+#### Conversion modes
+| Flag | Tool | Time | Quality |
+|------|------|------|---------|
+| `--fast` | pdfminer | ~5 s | Plain text, no LaTeX rendering; `chapter_title` may be empty |
+| _(default)_ | marker_single | 15–30 min | Full ML layout + LaTeX rendering |
+
+The converted `full.md` is cached — re-runs reuse it. Delete it to force reconversion.
+
+---
+
 ## Lean Setup
 - Toolchain: v4.13.0 (pinned in `lean-toolchain`, required by optlib)
 - Dependencies: optlib (optimization library), mathlib4 (via optlib's dependency)
@@ -141,9 +204,22 @@ theorem TheoremName (hyp1 : ...) (hyp2 : ...) : conclusion := by
 - Name files after the theorem (e.g., `GradientDescentConvergence.lean`)
 - Always import `Mathlib` and `Optlib` (or specific submodules) at top
 
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/preprocess.py` | Papers/lecture notes → chapter-level sections (Workflow B) |
+| `scripts/preprocess_textbook.py` | Textbooks → subsection-level sections with theorem index (Workflow C) |
+
+Both scripts append JSON Lines entries to `logs/pipeline.log`.
+
+---
+
 ## Common Pitfalls
 - lean-lsp-mcp will timeout if `lake build` hasn't run — always build first
 - optlib uses Lean 4.13.0 syntax; don't upgrade lean-toolchain without checking optlib compat
 - `lake exe cache get` must run after `lake update` to avoid recompiling mathlib from scratch
 - marker_single CLI may not be on PATH; the preprocessing script handles this automatically
+- marker_single takes 15–30 min on a full textbook; use `--fast` for quick iteration
 - Check optlib before proving — many optimization theorems are already formalized there
+- After `lake build`, reload Lean files in editor and wait for LSP to finish loading mathlib (~5 min)
