@@ -72,3 +72,53 @@ def test_parse_chunks_body():
     chunks = parse_chunks(SIMPLE_TEX, chapter_num=2, chapter_title="Chapter Two")
     sec1 = next(c for c in chunks if c["section_title"] == "First section")
     assert "Content of first section" in sec1["body_tex"]
+
+
+from preprocess_tex import detect_theorems_tex
+
+THM_TEX = r"""
+\begin{theorem}[Separation Theorem]
+\label{th:separation}
+Let $\cX$ be a closed convex set.
+\end{theorem}
+
+\begin{proposition}[Existence of subgradients] \label{prop:subgrad}
+Let $f$ be convex.
+\end{proposition}
+
+\begin{definition}[Convex function]
+A function $f$ is convex if...
+\end{definition}
+"""
+
+
+def test_detect_theorems_tex_count():
+    counter = [0]
+    thms = detect_theorems_tex(THM_TEX, chapter_num=1, counter=counter)
+    assert len(thms) == 3
+    assert counter[0] == 3
+
+
+def test_detect_theorems_tex_ids():
+    counter = [0]
+    thms = detect_theorems_tex(THM_TEX, chapter_num=1, counter=counter)
+    assert thms[0]["id"] == "Theorem 1.1"
+    assert thms[1]["id"] == "Proposition 1.2"
+    assert thms[2]["id"] == "Definition 1.3"
+
+
+def test_detect_theorems_tex_labels():
+    counter = [0]
+    thms = detect_theorems_tex(THM_TEX, chapter_num=1, counter=counter)
+    assert thms[0]["label"] == "Separation Theorem"
+    assert thms[0]["tex_label"] == "th:separation"
+    assert thms[1]["tex_label"] == "prop:subgrad"
+
+
+def test_detect_theorems_tex_no_name():
+    tex = r"\begin{theorem}" + "\n" + r"\label{th:main}" + "\nContent\n" + r"\end{theorem}"
+    counter = [0]
+    thms = detect_theorems_tex(tex, chapter_num=2, counter=counter)
+    assert thms[0]["id"] == "Theorem 2.1"
+    assert thms[0]["label"] == ""
+    assert thms[0]["tex_label"] == "th:main"

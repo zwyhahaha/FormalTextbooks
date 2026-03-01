@@ -124,6 +124,44 @@ def parse_chunks(tex_text: str, chapter_num: int, chapter_title: str) -> list[di
     return chunks
 
 
+# Matches \begin{theorem}[Optional Name] or \begin{theorem}
+_ENV_BEGIN_RE = re.compile(
+    r'\\begin\{(' + '|'.join(THEOREM_ENVS) + r')\}'
+    r'(?:\[([^\]]*)\])?'          # optional [Name]
+    r'(?:\s*\\label\{([^}]+)\})?', # optional inline \label
+    re.IGNORECASE,
+)
+_LABEL_RE = re.compile(r'\\label\{([^}]+)\}')
+
+
+def detect_theorems_tex(body_tex: str, chapter_num: int, counter: list[int]) -> list[dict]:
+    """Find theorem-like environments in raw TeX chunk.
+
+    `counter` is a mutable [int] shared across chunks within the same chapter.
+    All theorem-like envs (theorem, lemma, proposition, corollary, definition, remark)
+    share one counter, matching now.cls behavior.
+
+    Returns list of {id, label, tex_label}.
+    """
+    results = []
+    for m in _ENV_BEGIN_RE.finditer(body_tex):
+        env_type = m.group(1).capitalize()
+        name = (m.group(2) or "").strip()
+        tex_label = m.group(3)
+
+        # If \label not inline, look for it in the next 200 chars
+        if not tex_label:
+            snippet = body_tex[m.end():m.end() + 200]
+            lm = _LABEL_RE.search(snippet)
+            tex_label = lm.group(1) if lm else None
+
+        counter[0] += 1
+        thm_id = f"{env_type} {chapter_num}.{counter[0]}"
+        results.append({"id": thm_id, "label": name, "tex_label": tex_label or ""})
+
+    return results
+
+
 def _log(event: str, data: dict) -> None:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "event": event, **data}
