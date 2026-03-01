@@ -17,6 +17,28 @@ CHAPTER_FILES = [
 THEOREM_ENVS = {"theorem", "lemma", "proposition", "corollary", "definition", "remark"}
 
 
+# Matches: \newcommand{\NAME}{EXPANSION} or \renewcommand{\NAME}{EXPANSION}
+# Expansion group handles one level of nested braces (e.g. \mathbb{R})
+_NEWCMD_RE = re.compile(
+    r'\\(?:new|renew)command\{(\\[a-zA-Z]+)\}\{((?:[^{}]|\{[^{}]*\})*)\}'
+)
+
+
+def load_macros(commands_path: Path) -> dict[str, str]:
+    """Parse Commands.tex and return {macro: expansion} dict.
+
+    Only captures simple one-argument-free macros (no #1 parameters).
+    Skips macros whose expansion contains '#' (parameterized).
+    """
+    text = commands_path.read_text(encoding="utf-8")
+    result = {}
+    for m in _NEWCMD_RE.finditer(text):
+        name, expansion = m.group(1), m.group(2)
+        if "#" not in expansion:
+            result[name] = expansion
+    return result
+
+
 def _log(event: str, data: dict) -> None:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "event": event, **data}
