@@ -151,3 +151,79 @@ def test_convert_returns_string():
     result = convert_to_markdown(MATH_TEX, TEX_DIR)
     assert isinstance(result, str)
     assert len(result) > 10
+
+
+import yaml
+from preprocess_tex import write_section_files
+
+
+def _make_chunk(ch=1, sec=1, sub=None, sec_title="Section One",
+                sub_title=None, label="sec:one", body="Some content."):
+    return {
+        "chapter": ch, "chapter_title": "Intro",
+        "section": sec, "section_title": sec_title,
+        "subsection": sub, "subsection_title": sub_title,
+        "section_id": f"{ch}.{sec}" if sub is None else f"{ch}.{sec}.{sub}",
+        "tex_label": label, "body_tex": body,
+        "theorems": [],
+        "markdown": "Some content.",
+    }
+
+
+def test_write_section_files_creates_files(tmp_path):
+    chunks = [_make_chunk()]
+    written = write_section_files(chunks, tmp_path, book="TestBook")
+    assert len(written) == 1
+    assert written[0].exists()
+
+
+def test_write_section_files_filename_section(tmp_path):
+    chunks = [_make_chunk(ch=2, sec=3, sec_title="The gravity method")]
+    written = write_section_files(chunks, tmp_path, book="TestBook")
+    assert written[0].name == "02_03_the_gravity_method.md"
+
+
+def test_write_section_files_filename_subsection(tmp_path):
+    chunks = [_make_chunk(ch=2, sec=3, sub=1, sec_title="Vaidya",
+                          sub_title="Volumetric barrier")]
+    written = write_section_files(chunks, tmp_path, book="TestBook")
+    assert written[0].name == "02_03_01_volumetric_barrier.md"
+
+
+def test_write_section_files_yaml_frontmatter(tmp_path):
+    chunks = [_make_chunk(ch=1, sec=2, sec_title="Basic convexity",
+                          label="sec:basic")]
+    written = write_section_files(chunks, tmp_path, book="MyBook")
+    text = written[0].read_text()
+    assert text.startswith("---\n")
+    end = text.index("\n---", 3)
+    fm = yaml.safe_load(text[3:end])
+    assert fm["book"] == "MyBook"
+    assert fm["chapter"] == 1
+    assert fm["section"] == 2
+    assert fm["tex_label"] == "sec:basic"
+
+
+def test_write_section_files_preserves_status(tmp_path):
+    sections_dir = tmp_path / "sections"
+    sections_dir.mkdir()
+    existing = sections_dir / "01_01_section_one.md"
+    existing_fm = {
+        "book": "TestBook", "chapter": 1, "chapter_title": "Intro",
+        "section": 1, "section_title": "Section One", "subsection": None,
+        "subsection_title": None, "section_id": "1.1", "tex_label": "sec:one",
+        "theorems": [{"id": "Theorem 1.1", "label": "Main", "tex_label": "th:main"}],
+        "lean_files": [{"id": "Theorem 1.1",
+                        "path": "proofs/TestBook/Theorem11.lean",
+                        "status": "proved"}],
+    }
+    existing.write_text("---\n" + yaml.dump(existing_fm) + "---\n\nContent")
+
+    chunks = [_make_chunk()]
+    chunks[0]["theorems"] = [{"id": "Theorem 1.1", "label": "Main", "tex_label": "th:main"}]
+    write_section_files(chunks, tmp_path, book="TestBook")
+
+    text = existing.read_text()
+    end = text.index("\n---", 3)
+    fm = yaml.safe_load(text[3:end])
+    assert fm["lean_files"][0]["status"] == "proved"  # preserved

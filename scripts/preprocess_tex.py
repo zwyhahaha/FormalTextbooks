@@ -232,6 +232,84 @@ def convert_to_markdown(body_tex: str, tex_dir: Path) -> str:
     return _light_clean(body_tex)
 
 
+def _title_to_slug(title: str) -> str:
+    slug = re.sub(r'[^a-z0-9]+', '_', title.lower()).strip('_')
+    return slug[:40]
+
+
+def _read_existing_status(path: Path) -> dict[str, str]:
+    """Return {theorem_id: status} from existing section file's lean_files."""
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}
+    try:
+        fm = yaml.safe_load(text[3:end])
+        return {lf["id"]: lf.get("status", "pending")
+                for lf in (fm.get("lean_files") or [])}
+    except yaml.YAMLError:
+        return {}
+
+
+def write_section_files(chunks: list[dict], paper_dir: Path, book: str) -> list[Path]:
+    """Write section/subsection markdown files to paper_dir/sections/.
+
+    Each chunk must have keys: chapter, chapter_title, section, section_title,
+    subsection, subsection_title, section_id, tex_label, theorems, markdown.
+    Preserves existing lean_files status on re-runs.
+    Returns list of written Paths.
+    """
+    sections_dir = paper_dir / "sections"
+    sections_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+
+    for chunk in chunks:
+        sub = chunk["subsection"]
+        if sub is None:
+            slug = _title_to_slug(chunk["section_title"])
+            filename = f"{chunk['chapter']:02d}_{chunk['section']:02d}_{slug}.md"
+        else:
+            slug = _title_to_slug(chunk["subsection_title"] or chunk["section_title"])
+            filename = (f"{chunk['chapter']:02d}_{chunk['section']:02d}"
+                        f"_{sub:02d}_{slug}.md")
+
+        out_path = sections_dir / filename
+        existing_status = _read_existing_status(out_path)
+
+        lean_files = [
+            {
+                "id": t["id"],
+                "path": (f"proofs/{book}/"
+                         f"{t['id'].replace(' ', '').replace('.', '')}.lean"),
+                "status": existing_status.get(t["id"], "pending"),
+            }
+            for t in chunk.get("theorems", [])
+        ]
+
+        fm = {
+            "book": book,
+            "chapter": chunk["chapter"],
+            "chapter_title": chunk["chapter_title"],
+            "section": chunk["section"],
+            "section_title": chunk["section_title"],
+            "subsection": chunk["subsection"],
+            "subsection_title": chunk["subsection_title"],
+            "section_id": chunk["section_id"],
+            "tex_label": chunk.get("tex_label") or "",
+            "theorems": chunk.get("theorems", []),
+            "lean_files": lean_files,
+        }
+        front_matter = "---\n" + yaml.dump(fm, allow_unicode=True, sort_keys=False) + "---\n\n"
+        out_path.write_text(front_matter + chunk.get("markdown", ""), encoding="utf-8")
+        written.append(out_path)
+
+    return written
+
+
 def _log(event: str, data: dict) -> None:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "event": event, **data}
