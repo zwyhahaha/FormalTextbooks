@@ -162,6 +162,76 @@ def detect_theorems_tex(body_tex: str, chapter_num: int, counter: list[int]) -> 
     return results
 
 
+# Light TeX cleaner used as pandoc fallback
+_COMMENT_RE = re.compile(r'(?<!\\)%[^\n]*')
+_BEGIN_ENV_RE = re.compile(r'\\begin\{(\w+)\}(?:\[([^\]]*)\])?')
+_END_ENV_RE = re.compile(r'\\end\{(\w+)\}')
+_EMPH_RE = re.compile(r'\\(?:emph|textit)\{([^}]+)\}')
+_BF_RE = re.compile(r'\\(?:textbf|mathbf)\{([^}]+)\}')
+_FOOTNOTE_RE = re.compile(r'\\footnote\{[^}]*\}')
+
+
+def _light_clean(tex: str) -> str:
+    """Minimal TeX → readable text without pandoc."""
+    text = _COMMENT_RE.sub("", tex)
+    text = _FOOTNOTE_RE.sub("", text)
+
+    def replace_begin(m: re.Match) -> str:
+        env, name = m.group(1), m.group(2) or ""
+        if env in THEOREM_ENVS:
+            label = f" ({name})" if name else ""
+            return f"\n**{env.capitalize()}**{label}\n"
+        if env == "proof":
+            return "\n*Proof.*\n"
+        return ""
+
+    text = _BEGIN_ENV_RE.sub(replace_begin, text)
+    text = _END_ENV_RE.sub("", text)
+    text = _EMPH_RE.sub(r"*\1*", text)
+    text = _BF_RE.sub(r"**\1**", text)
+    # Collapse excess blank lines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
+def convert_to_markdown(body_tex: str, tex_dir: Path) -> str:
+    """Convert TeX chunk to markdown via pandoc; fall back to light cleaner."""
+    commands_tex = tex_dir / "Commands.tex"
+    preamble = (
+        r"\documentclass{article}" + "\n"
+        r"\usepackage{amsmath,amssymb,amsthm}" + "\n"
+        r"\newtheorem{theorem}{Theorem}[section]" + "\n"
+        r"\newtheorem{lemma}[theorem]{Lemma}" + "\n"
+        r"\newtheorem{proposition}[theorem]{Proposition}" + "\n"
+        r"\newtheorem{corollary}[theorem]{Corollary}" + "\n"
+        r"\newtheorem{definition}[theorem]{Definition}" + "\n"
+        r"\newtheorem{remark}[theorem]{Remark}" + "\n"
+    )
+    if commands_tex.exists():
+        preamble += r"\input{" + str(commands_tex.resolve()) + "}\n"
+    preamble += r"\begin{document}" + "\n"
+    full_tex = preamble + body_tex + "\n" + r"\end{document}"
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".tex", mode="w",
+                                         delete=False, encoding="utf-8") as f:
+            f.write(full_tex)
+            tmp_path = f.name
+        result = subprocess.run(
+            ["pandoc", tmp_path, "--from", "latex",
+             "--to", "markdown-raw_tex", "--wrap=none"],
+            capture_output=True, text=True, timeout=30,
+        )
+        Path(tmp_path).unlink(missing_ok=True)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Fallback: light TeX cleaning
+    return _light_clean(body_tex)
+
+
 def _log(event: str, data: dict) -> None:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "event": event, **data}

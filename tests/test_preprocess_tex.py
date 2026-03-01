@@ -122,3 +122,32 @@ def test_detect_theorems_tex_no_name():
     assert thms[0]["id"] == "Theorem 2.1"
     assert thms[0]["label"] == ""
     assert thms[0]["tex_label"] == "th:main"
+
+
+from preprocess_tex import convert_to_markdown
+
+MATH_TEX = r"""
+\begin{theorem}[Test]
+Let $f : \cX \rightarrow \R$ be convex. Then
+$$f(x) \leq f(y) + g^\top(x - y).$$
+\end{theorem}
+\begin{proof}
+Obvious. \qed
+\end{proof}
+"""
+
+
+def test_convert_contains_math():
+    result = convert_to_markdown(MATH_TEX, TEX_DIR)
+    assert "f(x)" in result or "f(y)" in result
+
+
+def test_convert_strips_begin_end():
+    result = convert_to_markdown(MATH_TEX, TEX_DIR)
+    assert r"\begin{theorem}" not in result
+
+
+def test_convert_returns_string():
+    result = convert_to_markdown(MATH_TEX, TEX_DIR)
+    assert isinstance(result, str)
+    assert len(result) > 10
