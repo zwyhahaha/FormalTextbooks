@@ -13,7 +13,7 @@ theorems:
   label: ''
   tex_label: th:centerofgravity
 - id: Lemma 2.2
-  label: \cite{Gru60}
+  label: ''
   tex_label: lem:Gru60
 lean_files:
 - id: Theorem 2.1

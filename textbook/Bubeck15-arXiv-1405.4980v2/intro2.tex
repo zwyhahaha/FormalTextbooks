@@ -1,0 +1,229 @@
+The central objects of our study are convex functions and convex sets in $\R^n$.
+
+\begin{definition}[Convex sets and convex functions]
+A set $\cX \subset \R^n$ is said to be convex if it contains all of its segments, that is
+$$\forall (x,y,\gamma) \in \cX \times \cX \times [0,1], \; (1-\gamma) x + \gamma y \in \mathcal{X}.$$
+A function $f : \mathcal{X} \rightarrow \R$ is said to be convex if it always lies below its chords, that is
+$$ \forall (x,y,\gamma) \in \cX \times \cX \times [0,1], \; f((1-\gamma) x + \gamma y) \leq (1-\gamma)f(x) + \gamma f(y) .$$
+\end{definition}
+We are interested in algorithms that take as input a convex set $\cX$ and a convex function $f$ and output an approximate minimum of $f$ over $\cX$. We write compactly the problem of finding the minimum of $f$ over $\cX$ as
+\begin{align*}
+& \mathrm{min.} \; f(x) \\
+& \text{s.t.} \; x \in \cX .
+\end{align*}
+In the following we will make more precise how the set of constraints $\cX$ and the objective function $f$ are specified to the algorithm. Before that we proceed to give a few important examples of convex optimization problems in machine learning.
+
+\section{Some convex optimization problems in machine learning} \label{sec:mlapps}
+Many fundamental convex optimization problems in machine learning take the following form:
+\begin{equation} \label{eq:veryfirst}
+\underset{x \in \R^n}{\mathrm{min.}} \; \sum_{i=1}^m f_i(x) + \lambda \cR(x) ,
+\end{equation}
+where the functions $f_1, \hdots, f_m, \cR$ are convex and $\lambda \geq 0$ is a fixed parameter. The interpretation is that $f_i(x)$ represents the cost of using $x$ on the $i^{th}$ element of some data set, and $\cR(x)$ is a regularization term which enforces some ``simplicity'' in $x$. We discuss now major instances of \eqref{eq:veryfirst}. In all cases one has a data set of the form $(w_i, y_i) \in \R^n \times \cY, i=1, \hdots, m$ and the cost function $f_i$ depends only on the pair $(w_i, y_i)$. We refer to \cite{HTF01, SS02, SSS14} for more details on the origin of these important problems. The mere objective of this section is to expose the reader to a few concrete convex optimization problems which are routinely solved.
+ 
+In classification one has $\cY = \{-1,1\}$. Taking $f_i(x) = \max(0, 1- y_i x^{\top} w_i)$ (the so-called hinge loss) and $\cR(x) = \|x\|_2^2$ one obtains the SVM problem. On the other hand taking $f_i(x) = \log(1 + \exp(-y_i x^{\top} w_i) )$ (the logistic loss) and again $\cR(x) = \|x\|_2^2$ one obtains the (regularized) logistic regression problem.
+
+In regression one has $\cY = \R$. Taking $f_i(x) = (x^{\top} w_i - y_i)^2$ and $\cR(x) = 0$ one obtains the vanilla least-squares problem which can be rewritten in vector notation as
+$$\underset{x \in \R^n}{\mathrm{min.}} \; \|W x - Y\|_2^2 ,$$
+where $W \in \R^{m \times n}$ is the matrix with $w_i^{\top}$ on the $i^{th}$ row and $Y =(y_1, \hdots, y_n)^{\top}$.
+With $\cR(x) = \|x\|_2^2$ one obtains the ridge regression problem, while with $\cR(x) = \|x\|_1$ this is the LASSO problem \cite{Tib96}.
+
+Our last two examples are of a slightly different flavor. In particular the design variable $x$ is now best viewed as a matrix, and thus we denote it by a capital letter $X$. The sparse inverse covariance estimation problem can be written as follows, given some empirical covariance matrix $Y$,
+\begin{align*}
+& \mathrm{min.} \; \mathrm{Tr}(X Y) - \mathrm{logdet}(X) + \lambda \|X\|_1 \\
+& \text{s.t.} \; X \in \R^{n \times n}, X^{\top} = X, X \succeq 0 .
+\end{align*}
+Intuitively the above problem is simply a regularized maximum likelihood estimator (under a Gaussian assumption). 
+
+Finally we introduce the convex version of the matrix completion problem. Here our data set consists of observations of some of the entries of an unknown matrix $Y$, and we want to ``complete" the unobserved entries of $Y$ in such a way that the resulting matrix is ``simple" (in the sense that it has low rank). After some massaging (see \cite{CR09}) the (convex) matrix completion problem can be formulated as follows:
+\begin{align*}
+& \mathrm{min.} \; \mathrm{Tr}(X) \\
+& \text{s.t.} \; X \in \R^{n \times n}, X^{\top} = X, X \succeq 0, X_{i,j} = Y_{i,j} \; \text{for} \; (i,j) \in \Omega ,
+\end{align*}
+where $\Omega \subset [n]^2$ and $(Y_{i,j})_{(i,j) \in \Omega}$ are given. 
+
+\section{Basic properties of convexity}
+A basic result about convex sets that we shall use extensively is the Separation Theorem.
+
+\begin{theorem}[Separation Theorem]
+Let $\mathcal{X} \subset \R^n$ be a closed convex set, and $x_0 \in \R^n \setminus \mathcal{X}$. Then, there exists $w \in \R^n$ and $t \in \R$ such that
+$$w^{\top} x_0 < t, \; \text{and} \; \forall x \in \mathcal{X}, w^{\top} x \geq t.$$
+\end{theorem}
+
+Note that if $\mathcal{X}$ is not closed then one can only guarantee that $w^{\top} x_0 \leq w^{\top} x, \forall x \in \mathcal{X}$ (and $w \neq 0$). This immediately implies the Supporting Hyperplane Theorem ($\partial \cX$ denotes the boundary of $\cX$, that is the closure without the interior):
+
+\begin{theorem}[Supporting Hyperplane Theorem]
+Let $\mathcal{X} \subset \R^n$ be a convex set, and $x_0 \in \partial \mathcal{X}$. Then, there exists $w \in \R^n, w \neq 0$ such that
+$$\forall x \in \mathcal{X}, w^{\top} x \geq w^{\top} x_0.$$
+\end{theorem}
+
+We introduce now the key notion of {\em subgradients}.
+
+\begin{definition}[Subgradients]
+Let $\mathcal{X} \subset \R^n$, and $f : \mathcal{X} \rightarrow \R$. Then $g \in \R^n$ is a subgradient of $f$ at $x \in \mathcal{X}$ if for any $y \in \mathcal{X}$ one has
+$$f(x) - f(y) \leq g^{\top} (x - y) .$$
+The set of subgradients of $f$ at $x$ is denoted $\partial f (x)$.
+\end{definition}
+To put it differently, for any $x \in \cX$ and $g \in \partial f(x)$, $f$ is above the linear function $y \mapsto f(x) + g^{\top} (y-x)$. The next result shows (essentially) that a convex functions always admit subgradients.
+
+\begin{proposition}[Existence of subgradients] \label{prop:existencesubgradients}
+Let $\mathcal{X} \subset \R^n$ be convex, and $f : \mathcal{X} \rightarrow \R$. If $\forall x \in \mathcal{X}, \partial f(x) \neq \emptyset$ then $f$ is convex. Conversely if $f$ is convex then for any $x \in \mathrm{int}(\mathcal{X}), \partial f(x) \neq \emptyset$. Furthermore if $f$ is convex and differentiable at $x$ then $\nabla f(x) \in \partial f(x)$. 
+\end{proposition}
+
+Before going to the proof we recall the definition of the epigraph of a function $f : \mathcal{X} \rightarrow \R$:
+$$\mathrm{epi}(f) = \{(x,t) \in \mathcal{X} \times \R : t \geq f(x) \} .$$
+It is obvious that a function is convex if and only if its epigraph is a convex set.
+
+\begin{proof}
+The first claim is almost trivial: let $g \in \partial f((1-\gamma) x + \gamma y)$, then by definition one has
+\begin{eqnarray*}
+& & f((1-\gamma) x + \gamma y) \leq f(x) + \gamma g^{\top} (y - x) , \\
+& & f((1-\gamma) x + \gamma y) \leq f(y) + (1-\gamma) g^{\top} (x - y) ,
+\end{eqnarray*}
+which clearly shows that $f$ is convex by adding the two (appropriately rescaled) inequalities.
+\newline
+
+Now let us prove that a convex function $f$ has subgradients in the interior of $\mathcal{X}$. We build a subgradient by using a supporting hyperplane to the epigraph of the function. Let $x \in \mathcal{X}$. Then clearly $(x,f(x)) \in \partial \mathrm{epi}(f)$, and $\mathrm{epi}(f)$ is a convex set. Thus by using the Supporting Hyperplane Theorem, there exists $(a,b) \in \R^n \times \R$ such that
+\begin{equation} \label{eq:supphyp}
+a^{\top} x + b f(x) \geq a^{\top} y + b t, \forall (y,t) \in \mathrm{epi}(f) .
+\end{equation}
+Clearly, by letting $t$ tend to infinity, one can see that $b \leq 0$. Now let us assume that $x$ is in the interior of $\mathcal{X}$. Then for $\epsilon > 0$ small enough, $y=x + \epsilon a \in \mathcal{X}$, which implies that $b$ cannot be equal to $0$ (recall that if $b=0$ then necessarily $a \neq 0$ which allows to conclude by contradiction). Thus rewriting \eqref{eq:supphyp} for $t=f(y)$ one obtains
+$$f(x) - f(y) \leq \frac{1}{|b|} a^{\top} (x - y) .$$
+Thus $a / |b| \in \partial f(x)$ which concludes the proof of the second claim.
+\newline
+
+Finally let $f$ be a convex and differentiable function. Then by definition:
+\begin{eqnarray*}
+f(y) & \geq & \frac{f((1-\gamma) x + \gamma y) - (1- \gamma) f(x)}{\gamma} \\
+& = & f(x) + \frac{f(x + \gamma (y - x)) - f(x)}{\gamma} \\
+& \underset{\gamma \to 0}{\to} & f(x) + \nabla f(x)^{\top} (y-x),
+\end{eqnarray*}
+which shows that $\nabla f(x) \in \partial f(x)$.
+\end{proof}
+
+In several cases of interest the set of contraints can have an empty interior, in which case the above proposition does not yield any information. However it is easy to replace $\mathrm{int}(\cX)$ by $\mathrm{ri}(\cX)$ -the relative interior of $\cX$- which is defined as the interior of $\cX$ when we view it as subset of the affine subspace it generates. Other notions of convex analysis will prove to be useful in some parts of this text. In particular the notion of {\em closed convex functions} is convenient to exclude pathological cases: these are the convex functions with closed epigraphs. Sometimes it is also useful to consider the extension of a convex function $f: \cX \rightarrow \R$ to a function from $\R^n$ to $\overline{\R}$ by setting $f(x)= + \infty$ for $x \not\in \cX$. In convex analysis one uses the term {\em proper convex function} to denote a convex function with values in $\R \cup \{+\infty\}$ such that there exists $x \in \R^n$ with $f(x) < +\infty$. \textbf{From now on all convex functions will be closed, and if necessary we consider also their proper extension.} We refer the reader to \cite{Roc70} for an extensive discussion of these notions.
+
+\section{Why convexity?}
+The key to the algorithmic success in minimizing convex functions is that these functions exhibit a {\em local to global} phenomenon. We have already seen one instance of this in Proposition \ref{prop:existencesubgradients}, where we showed that $\nabla f(x) \in \partial f(x)$: the gradient $\nabla f(x)$ contains a priori only local information about the function $f$ around $x$ while the subdifferential $\partial f(x)$ gives a global information in the form of a linear lower bound on the entire function. Another instance of this local to global phenomenon is that local minima of convex functions are in fact global minima:
+
+\begin{proposition}[Local minima are global minima]
+Let $f$ be convex. If $x$ is a local minimum of $f$ then $x$ is a global minimum of $f$. Furthermore this happens if and only if $0 \in \partial f(x)$.
+\end{proposition}
+
+\begin{proof}
+Clearly $0 \in \partial f(x)$ if and only if $x$ is a global minimum of $f$. Now assume that $x$ is local minimum of $f$. Then for $\gamma$ small enough one has for any $y$,
+$$f(x) \leq f((1-\gamma) x + \gamma y) \leq (1-\gamma) f(x) + \gamma f(y) ,$$
+which implies $f(x) \leq f(y)$ and thus $x$ is a global minimum of $f$.
+\end{proof}
+
+The nice behavior of convex functions will allow for very fast algorithms to optimize them. This alone would not be sufficient to justify the importance of this class of functions (after all constant functions are pretty easy to optimize). However it turns out that surprisingly many optimization problems admit a convex (re)formulation. The excellent book \cite{BV04} describes in great details the various methods that one can employ to uncover the convex aspects of an optimization problem. We will not repeat these arguments here, but we have already seen that many famous machine learning problems (SVM, ridge regression, logistic regression, LASSO, sparse covariance estimation, and matrix completion) are formulated as convex problems.
+
+We conclude this section with a simple extension of the optimality condition ``$0 \in \partial f(x)$'' to the case of constrained optimization. We state this result in the case of a differentiable function for sake of simplicity.
+\begin{proposition}[First order optimality condition] \label{prop:firstorder}
+Let $f$ be convex and $\cX$ a closed convex set on which $f$ is differentiable. Then
+$$x^* \in \argmin_{x \in \cX} f(x) ,$$
+if and only if one has
+$$\nabla f(x^*)^{\top}(x^*-y) \leq 0, \forall y \in \cX .$$
+\end{proposition}
+
+\begin{proof}
+The ``if" direction is trivial by using that a gradient is also a subgradient. For the ``only if" direction it suffices to note that if $\nabla f(x)^{\top} (y-x) < 0$, then $f$ is locally decreasing around $x$ on the line to $y$ (simply consider $h(t) = f(x + t (y-x))$ and note that $h'(0) = \nabla f(x)^{\top} (y-x)$).
+\end{proof}
+
+\section{Black-box model} \label{sec:blackbox}
+We now describe our first model of ``input" for the objective function and the set of constraints. In the black-box model we assume that we have unlimited computational resources, the set of constraint $\cX$ is known, and the objective function $f: \cX \rightarrow \R$ is unknown but can be accessed through queries to {\em oracles}:
+\begin{itemize}
+\item A zeroth order oracle takes as input a point $x \in \cX$ and outputs the value of $f$ at $x$.
+\item A first order oracle takes as input a point $x \in \cX$ and outputs a subgradient of $f$ at $x$.
+\end{itemize}
+In this context we are interested in understanding the {\em oracle complexity} of convex optimization, that is how many queries to the oracles are necessary and sufficient to find an $\epsilon$-approximate minima of a convex function. To show an upper bound on the sample complexity we need to propose an algorithm, while lower bounds are obtained by information theoretic reasoning (we need to argue that if the number of queries is ``too small" then we don't have enough information about the function to identify an $\epsilon$-approximate solution).
+
+From a mathematical point of view, the strength of the black-box model is that it will allow us to derive a {\em complete} theory of convex optimization, in the sense that we will obtain matching upper and lower bounds on the oracle complexity for various subclasses of interesting convex functions. While the model by itself does not limit our computational resources (for instance any operation on the constraint set $\cX$ is allowed) we will of course pay special attention to the algorithms' {\em computational complexity} (i.e., the number of elementary operations that the algorithm needs to do). We will also be interested in the situation where the set of constraint $\cX$ is unknown and can only be accessed through a {\em separation oracle}: given $x \in \R^n$, it outputs either that $x$ is in $\mathcal{X}$, or if $x \not\in \mathcal{X}$ then it outputs a separating hyperplane between $x$ and $\mathcal{X}$. 
+
+The black-box model was essentially developed in the early days of convex optimization (in the Seventies) with \cite{NY83} being still an important reference for this theory (see also \cite{Nem95}). In the recent years this model and the corresponding algorithms have regained a lot of popularity, essentially for two reasons:
+\begin{itemize}
+\item It is possible to develop algorithms with dimension-free oracle complexity which is quite attractive for optimization problems in very high dimension.
+\item Many algorithms developed in this model are robust to noise in the output of the oracles. This is especially interesting for stochastic optimization, and very relevant to machine learning applications. We will explore this in details in Chapter \ref{rand}.
+\end{itemize}
+Chapter \ref{finitedim}, Chapter \ref{dimfree} and Chapter \ref{mirror} are dedicated to the study of the black-box model (noisy oracles are discussed in Chapter \ref{rand}). We do not cover the setting where only a zeroth order oracle is available, also called derivative free optimization, and we refer to \cite{CSV09, ABM11} for further references on this.
+
+\section{Structured optimization} \label{sec:structured}
+The black-box model described in the previous section seems extremely wasteful for the applications we discussed in Section \ref{sec:mlapps}. Consider for instance the LASSO objective: $x \mapsto \|W x - y\|_2^2 + \|x\|_1$. We know this function {\em globally}, and assuming that we can only make local queries through oracles seem like an artificial constraint for the design of algorithms. Structured optimization tries to address this observation. Ultimately one would like to take into account the global structure of both $f$ and $\cX$ in order to propose the most efficient optimization procedure. An extremely powerful hammer for this task are the Interior Point Methods. We will describe this technique in Chapter \ref{beyond} alongside with other more recent techniques such as FISTA or Mirror Prox. 
+
+We briefly describe now two classes of optimization problems for which we will be able to exploit the structure very efficiently, these are the LPs (Linear Programs) and SDPs (Semi-Definite Programs). \cite{BN01} describe a more general class of Conic Programs but we will not go in that direction here.
+
+The class LP consists of problems where $f(x) = c^{\top} x$ for some $c \in \R^n$, and $\mathcal{X} = \{x \in \R^n : A x \leq b \}$ for some $A \in \R^{m \times n}$ and $b \in \R^m$.
+
+The class SDP consists of problems where the optimization variable is a symmetric matrix $X \in \R^{n \times n}$. Let $\mathbb{S}^n$ be the space of $n\times n$ symmetric matrices (respectively $\mathbb{S}^n_+$ is the space of positive semi-definite matrices), and let $\langle \cdot, \cdot \rangle$ be the Frobenius inner product (recall that it can be written as $\langle A, B \rangle = \tr(A^{\top} B)$). In the class SDP the problems are of the following form: $f(x) = \langle X, C \rangle$ for some $C \in \R^{n \times n}$, and $\mathcal{X} = \{X \in \mathbb{S}^n_+ : \langle X, A_i \rangle \leq b_i, i \in \{1, \hdots, m\} \}$ for some $A_1, \hdots, A_m \in \R^{n \times n}$ and $b \in \R^m$. Note that the matrix completion problem described in Section \ref{sec:mlapps} is an example of an SDP.
+
+\section{Overview of the results and disclaimer}
+The overarching aim of this monograph is to present the main complexity theorems in convex optimization and the corresponding algorithms. We focus on five major results in convex optimization which give the overall structure of the text: the existence of efficient cutting-plane methods with optimal oracle complexity (Chapter \ref{finitedim}), a complete characterization of the relation between first order oracle complexity and curvature in the objective function (Chapter \ref{dimfree}), first order methods beyond Euclidean spaces (Chapter \ref{mirror}), non-black box methods (such as interior point methods) can give a quadratic improvement in the number of iterations with respect to optimal black-box methods (Chapter \ref{beyond}), and finally noise robustness of first order methods (Chapter \ref{rand}). Table \ref{table} can be used as a quick reference to the results proved in Chapter \ref{finitedim} to Chapter \ref{beyond}, as well as some of the results of Chapter \ref{rand} (this last chapter is the most relevant to machine learning but the results are also slightly more specific which make them harder to summarize).
+
+An important disclaimer is that the above selection leaves out methods derived from duality arguments, as well as the two most popular research avenues in convex optimization: (i) using convex optimization in non-convex settings, and (ii) practical large-scale algorithms. Entire books have been written on these topics, and new books have yet to be written on the impressive collection of new results obtained for both (i) and (ii) in the past five years. 
+
+A few of the blatant omissions regarding (i) include (a) the theory of submodular optimization (see \cite{Bac13}), (b) convex relaxations of combinatorial problems (a short example is given in Section \ref{sec:convexrelaxation}), and (c) methods inspired from convex optimization for non-convex problems such as low-rank matrix factorization (see e.g. \cite{JNS13} and references therein), neural networks optimization, etc. 
+
+With respect to (ii) the most glaring omissions include (a) heuristics (the only heuristic briefly discussed here is the non-linear conjugate gradient in Section \ref{sec:CG}), (b) methods for distributed systems, and (c) adaptivity to unknown parameters. Regarding (a) we refer to \cite{NW06} where the most practical algorithms are discussed in great details (e.g., quasi-newton methods such as BFGS and L-BFGS, primal-dual interior point methods, etc.). The recent survey \cite{BPCPE11} discusses the alternating direction method of multipliers (ADMM) which is a popular method to address (b). Finally (c) is a subtle and important issue. In the entire monograph the emphasis is on presenting the algorithms and proofs in the simplest way, and thus for sake of convenience we assume that the relevant parameters describing the regularity and curvature of the objective function (Lipschitz constant, smoothness constant, strong convexity parameter) are known and can be used to tune the algorithm's own parameters. Line search is a powerful technique to replace the knowledge of these parameters and it is heavily used in practice, see again \cite{NW06}. We observe however that from a theoretical point of view (c) is only a matter of logarithmic factors as one can always run in parallel several copies of the algorithm with different guesses for the values of the parameters\footnote{Note that this trick does not work in the context of Chapter \ref{rand}.}. Overall the attitude of this text with respect to (ii) is best summarized by a quote of Thomas Cover: ``theory is the first term in the Taylor series of practice'', \cite{Cov92}.
+\newline
+
+\textbf{Notation.} We always denote by $x^*$ a point in $\cX$ such that $f(x^*) = \min_{x \in \cX} f(x)$ (note that the optimization problem under consideration will always be clear from the context). In particular we always assume that $x^*$ exists. For a vector $x \in \R^n$ we denote by $x(i)$ its $i^{th}$ coordinate. The dual of a norm $\|\cdot\|$ (defined later) will be denoted either $\|\cdot\|_*$ or $\|\cdot\|^*$ (depending on whether the norm already comes with a subscript). Other notation are standard (e.g., $\mI_n$ for the $n \times n$ identity matrix, $\succeq$ for the positive semi-definite order on matrices, etc).
+
+\begin{center}
+\begin{table}
+{\footnotesize
+\begin{tabular}{c|c|c|c|c}
+$f$ & {Algorithm} & {Rate} & {\# Iter} & {Cost/iter} 
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} non-smooth \end{tabular}} &  {\begin{tabular}{c} center of\\ gravity \end{tabular}} & $\exp\left( - \frac{t}{n} \right)$ & $n \log \left(\frac{1}{\epsilon}\right)$ &  {\begin{tabular}{c} 1 $\nabla$, \\ 1 $n$-dim $\int$ \end{tabular}}
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} non-smooth \end{tabular}} &  {\begin{tabular}{c} ellipsoid \\ method \end{tabular}} & $\frac{R}{r} \exp\left( - \frac{t}{n^2}\right)$ & $n^2 \log \left(\frac{R}{r \epsilon}\right)$ &  {\begin{tabular}{c} 1 $\nabla$, \\mat-vec $\times$ \end{tabular}}
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} non-smooth \end{tabular}} &  {\begin{tabular}{c} Vaidya \end{tabular}} & $\frac{R n}{r} \exp\left( - \frac{t}{n}\right)$ & $n \log \left(\frac{R n}{r \epsilon}\right)$ &  {\begin{tabular}{c} 1 $\nabla$, \\mat-mat $\times$ \end{tabular}}
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} quadratic \end{tabular}} &  {\begin{tabular}{c} CG \end{tabular}} & {\begin{tabular}{c} exact \\ $\exp\left( - \frac{t}{\kappa}\right)$ \end{tabular}} & {\begin{tabular}{c} $n$ \\ $\kappa \log\left(\frac1{\epsilon}\right)$ \end{tabular}} &  {\begin{tabular}{c} 1 $\nabla$ \end{tabular}}
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} non-smooth, \\ Lipschitz \end{tabular}} & {PGD} & $R L /\sqrt{t}$ & $R^2 L^2 /\epsilon^2$ &  {\begin{tabular}{c} 1 $\nabla$, \\ 1 proj. \end{tabular}}
+\\  \hline 
+%& & & \\
+  {smooth} & {PGD} & $\beta R^2 / t$ & $\beta R^2 /\epsilon$ &  {\begin{tabular}{c} 1 $\nabla$, \\ 1 proj. \end{tabular}}
+\\  \hline 
+%& & & \\
+  {smooth} & {\begin{tabular}{c} AGD \end{tabular}} & $\beta R^2 / t^2$ & $R \sqrt{\beta / \epsilon}$ & 1 $\nabla$ 
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} smooth \\ (any norm) \end{tabular}}& {FW} & $\beta R^2 / t$ & $\beta R^2 /\epsilon$ &  {\begin{tabular}{c} 1 $\nabla$, \\ 1 LP \end{tabular}}
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} strong. conv., \\ Lipschitz \end{tabular}} & {PGD} & $L^2 / (\alpha t)$ & $L^2 / (\alpha \epsilon)$ & {\begin{tabular}{c} 1 $\nabla$ , \\ 1 proj. \end{tabular}}
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} strong. conv., \\ smooth \end{tabular}} & {PGD} & $R^2 \exp\left(-\frac{t}{\kappa}\right)$ & $\kappa \log\left(\frac{R^2}{\epsilon}\right) $ & {\begin{tabular}{c} 1 $\nabla$ , \\ 1 proj. \end{tabular}}
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} strong. conv., \\ smooth \end{tabular}} & {\begin{tabular}{c} AGD \end{tabular}} & $R^2 \exp\left(-\frac{t}{\sqrt{\kappa}}\right)$ & $\sqrt{\kappa} \log\left(\frac{R^2}{\epsilon}\right) $ & 1 $\nabla$ 
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} $f+g$, \\ $f$ smooth, \\ $g$ simple \end{tabular}} & FISTA & $\beta R^2 / t^2$ & $R \sqrt{\beta / \epsilon}$ & {\begin{tabular}{c} 1 $\nabla$  of $f$ \\ Prox of $g$ \end{tabular}} 
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} $\underset{y \in \cY}{\max} \ \phi(x,y)$, \\ $\phi$ smooth\end{tabular}} & SP-MP & $\beta R^2 / t$ & $\beta R^2 /\epsilon$ & {\begin{tabular}{c} MD on $\cX$ \\ MD on $\cY$ \end{tabular}} 
+\\  \hline 
+%& & & \\
+  {\begin{tabular}{c} linear, \\ $\cX$ with $F$ \\$\nu$-self-conc. \end{tabular}} & IPM & $\nu \exp\left(- \frac{t}{\sqrt{\nu}}\right)$ & $\sqrt{\nu} \log\left(\frac{\nu}{\epsilon}\right)$ & {\begin{tabular}{c} Newton \\ step on $F$ \end{tabular}}
+\\ \hline
+  {\begin{tabular}{c} non-smooth \end{tabular}} & {SGD} & $B L /\sqrt{t}$ & $B^2 L^2 /\epsilon^2$ &  {\begin{tabular}{c} 1 stoch. ${\nabla}$, \\ 1 proj. \end{tabular}}
+\\ \hline
+  {\begin{tabular}{c} non-smooth, \\ strong. conv. \end{tabular}} & {SGD} & $B^2 / (\alpha t)$ & $B^2 / (\alpha \epsilon)$ &  {\begin{tabular}{c} 1 stoch. $\nabla$, \\ 1 proj. \end{tabular}}
+\\ \hline
+  {\begin{tabular}{c} $f=\frac1{m} \sum f_i$ \\ $f_i$ smooth \\ strong. conv. \end{tabular}} & {SVRG} & -- & $(m + \kappa) \log\left(\frac{1}{\epsilon}\right)$ &  {1 stoch. $\nabla$}
+  \end{tabular}}
+\caption{Summary of the results proved in Chapter \ref{finitedim} to Chapter \ref{beyond} and some of the results in Chapter \ref{rand}.}
+\label{table}
+\end{table}
+\end{center}
+
+%CG; Vaidya

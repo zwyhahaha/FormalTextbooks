@@ -9,12 +9,12 @@ subsection_title: null
 section_id: '3.1'
 tex_label: sec:psgd
 theorems:
-- id: Theorem 3.1
+- id: Theorem 3.2
   label: ''
   tex_label: th:pgd
 lean_files:
-- id: Theorem 3.1
-  path: proofs/Bubeck_convex_optimization/Theorem31.lean
+- id: Theorem 3.2
+  path: proofs/Bubeck_convex_optimization/Theorem32.lean
   status: pending
 ---
 

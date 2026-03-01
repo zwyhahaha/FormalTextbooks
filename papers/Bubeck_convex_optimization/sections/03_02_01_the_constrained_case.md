@@ -9,18 +9,18 @@ subsection_title: The constrained case
 section_id: 3.2.1
 tex_label: ''
 theorems:
-- id: Lemma 3.5
+- id: Lemma 3.6
   label: ''
   tex_label: lem:smoothconst
-- id: Theorem 3.6
+- id: Theorem 3.7
   label: ''
   tex_label: th:gdsmoothconstrained
 lean_files:
-- id: Lemma 3.5
-  path: proofs/Bubeck_convex_optimization/Lemma35.lean
+- id: Lemma 3.6
+  path: proofs/Bubeck_convex_optimization/Lemma36.lean
   status: pending
-- id: Theorem 3.6
-  path: proofs/Bubeck_convex_optimization/Theorem36.lean
+- id: Theorem 3.7
+  path: proofs/Bubeck_convex_optimization/Theorem37.lean
   status: pending
 ---
 

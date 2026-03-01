@@ -1,0 +1,323 @@
+In the previous chapter we showed that dimension-free oracle complexity is possible when the objective function $f$ and the constraint set $\cX$ are well-behaved in the Euclidean norm; e.g. if for all points $x \in \cX$ and all subgradients $g \in \partial f(x)$, one has that $\|x\|_2$ and $\|g\|_2$ are independent of the ambient dimension $n$. If this assumption is not met then the gradient descent techniques of Chapter \ref{dimfree} may lose their dimension-free convergence rates. For instance consider a differentiable convex function $f$ defined on the Euclidean ball $\mB_{2,n}$ and such that $\|\nabla f(x)\|_{\infty} \leq 1, \forall x \in \mB_{2,n}$. This implies that $\|\nabla f(x)\|_{2} \leq \sqrt{n}$, and thus projected gradient descent will converge to the minimum of $f$ on $\mB_{2,n}$ at a rate $\sqrt{n / t}$. In this chapter we describe the method of \cite{NY83}, known as mirror descent, which allows to find the minimum of such functions $f$ over the $\ell_1$-ball (instead of the Euclidean ball) at the much faster rate $\sqrt{\log(n) / t}$. This is only one example of the potential of mirror descent. This chapter is devoted to the description of mirror descent and some of its alternatives. The presentation is inspired from \cite{BT03}, [Chapter 11, \cite{CL06}], \cite{Rak09, Haz11, Bub11}.
+\newpage
+
+In order to describe the intuition behind the method let us abstract the situation for a moment and forget that we are doing optimization in finite dimension. We already observed that projected gradient descent works in an arbitrary Hilbert space $\mathcal{H}$. Suppose now that we are interested in the more general situation of optimization in some Banach space $\mathcal{B}$. In other words the norm that we use to measure the various quantity of interest does not derive from an inner product (think of $\mathcal{B} = \ell_1$ for example). In that case the gradient descent strategy does not even make sense: indeed the gradients (more formally the Fr\'echet derivative) $\nabla f(x)$ are elements of the dual space $\mathcal{B}^*$ and thus one cannot perform the computation $x - \eta \nabla f(x)$ (it simply does not make sense). We did not have this problem for optimization in a Hilbert space $\mathcal{H}$ since by Riesz representation theorem $\mathcal{H}^*$ is isometric to $\mathcal{H}$. The great insight of Nemirovski and Yudin is that one can still do a gradient descent by first mapping the point $x \in \mathcal{B}$ into the dual space $\mathcal{B}^*$, then performing the gradient update in the dual space, and finally mapping back the resulting point to the primal space $\mathcal{B}$. Of course the new point in the primal space might lie outside of the constraint set $\mathcal{X} \subset \mathcal{B}$ and thus we need a way to project back the point on the constraint set $\mathcal{X}$. Both the primal/dual mapping and the projection are based on the concept of a {\em mirror map} which is the key element of the scheme. Mirror maps are defined in Section \ref{sec:mm}, and the above scheme is formally described in Section \ref{sec:MD}.
+
+In the rest of this chapter we fix an arbitrary norm $\|\cdot\|$ on $\R^n$, and a compact convex set $\cX \subset \R^n$. The dual norm $\|\cdot\|_*$ is defined as $\|g\|_* = \sup_{x \in \mathbb{R}^n : \|x\| \leq 1} g^{\top} x$. We say that a convex function $f : \cX \rightarrow \R$ is (i) $L$-Lipschitz w.r.t. $\|\cdot\|$ if $\forall x \in \cX, g \in \partial f(x), \|g\|_* \leq L$, (ii) $\beta$-smooth w.r.t. $\|\cdot\|$ if $\|\nabla f(x) - \nabla f(y) \|_* \leq \beta \|x-y\|, \forall x, y \in \cX$, and (iii) $\alpha$-strongly convex w.r.t. $\|\cdot\|$ if 
+$$f(x) - f(y) \leq g^{\top} (x - y) - \frac{\alpha}{2} \|x - y \|^2 , \forall x, y \in \cX, g \in \partial f(x).$$ We also define the Bregman divergence associated to $f$ as 
+$$D_{f}(x,y) = f(x) - f(y) - \nabla f(y)^{\top} (x - y) .$$
+The following identity will be useful several times:
+\begin{equation} \label{eq:useful1}
+(\nabla f(x) - \nabla f(y))^{\top}(x-z) = D_{f}(x,y) + D_{f}(z,x) - D_{f}(z,y) .
+\end{equation}
+
+\section{Mirror maps} \label{sec:mm}
+Let $\cD \subset \R^n$ be a convex open set such that $\mathcal{X}$ is included in its closure, that is $\mathcal{X} \subset \overline{\mathcal{D}}$, and $\mathcal{X} \cap \mathcal{D} \neq \emptyset$. We say that $\Phi : \cD \rightarrow \R$ is a mirror map if it safisfies the following properties\footnote{Assumption (ii) can be relaxed in some cases, see for example \cite{ABL14}.}:
+\begin{enumerate}
+\item[(i)] $\Phi$ is strictly convex and differentiable.
+\item[(ii)] The gradient of $\Phi$ takes all possible values, that is $\nabla \Phi(\cD) = \R^n$.
+\item[(iii)] The gradient of $\Phi$ diverges on the boundary of $\cD$, that is 
+$$\lim_{x \rightarrow \partial \mathcal{D}} \|\nabla \Phi(x)\| = + \infty .$$
+\end{enumerate}
+
+In mirror descent the gradient of the mirror map $\Phi$ is used to map points from the ``primal" to the ``dual" (note that all points lie in $\R^n$ so the notions of primal and dual spaces only have an intuitive meaning). Precisely a point $x \in \mathcal{X} \cap \mathcal{D}$ is mapped to $\nabla \Phi(x)$, from which one takes a gradient step to get to $\nabla \Phi(x) - \eta \nabla f(x)$. Property (ii) then allows us to write the resulting point as $\nabla \Phi(y) = \nabla \Phi(x) - \eta \nabla f(x)$ for some $y \in \cD$. The primal point $y$ may lie outside of the set of constraints $\cX$, in which case one has to project back onto $\cX$. In mirror descent this projection is done via the Bregman divergence associated to $\Phi$. Precisely one defines
+$$\Pi_{\cX}^{\Phi} (y) = \argmin_{x \in \mathcal{X} \cap \mathcal{D}} D_{\Phi}(x,y) .$$
+Property (i) and (iii) ensures the existence and uniqueness of this projection (in particular since $x \mapsto D_{\Phi}(x,y)$ is locally increasing on the boundary of $\mathcal{D}$). The following lemma shows that the Bregman divergence essentially behaves as the Euclidean norm squared in terms of projections (recall Lemma \ref{lem:todonow}).
+
+\begin{lemma} \label{lem:todonow2}
+Let $x \in \cX \cap \cD$ and $y \in \cD$, then
+$$(\nabla \Phi(\Pi_{\cX}^{\Phi}(y)) - \nabla \Phi(y))^{\top} (\Pi^{\Phi}_{\cX}(y) - x) \leq 0 ,$$
+which also implies 
+$$D_{\Phi}(x, \Pi^{\Phi}_{\cX}(y)) + D_{\Phi}(\Pi^{\Phi}_{\cX}(y), y) \leq D_{\Phi}(x,y) .$$
+\end{lemma}
+
+\begin{proof}
+The proof is an immediate corollary of Proposition \ref{prop:firstorder} together with the fact that $\nabla_x D_{\Phi}(x,y) = \nabla \Phi(x) - \nabla \Phi(y)$.
+\end{proof}
+
+\section{Mirror descent} \label{sec:MD}
+We can now describe the mirror descent strategy based on a mirror map $\Phi$. Let $x_1 \in \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \Phi(x)$. Then for $t \geq 1$, let $y_{t+1} \in \mathcal{D}$ such that
+\begin{equation} \label{eq:MD1}
+\nabla \Phi(y_{t+1}) = \nabla \Phi(x_{t}) - \eta g_t, \ \text{where} \ g_t \in \partial f(x_t) ,
+\end{equation}
+and
+\begin{equation} \label{eq:MD2}
+x_{t+1} \in \Pi_{\cX}^{\Phi} (y_{t+1}) .
+\end{equation}
+See Figure \ref{fig:MD} for an illustration of this procedure.
+\begin{figure}
+\begin{tikzpicture}[scale=3.5]
+\clip (-2.4,-0.7) rectangle (1,1);
+\draw[rotate=30, very thick] (0,-0.5) ellipse (0.7 and 1);
+\draw[very thick] (-2,0) ellipse (1 and 0.5);
+\node (S) [very thick, regular polygon, regular polygon sides=6, draw,
+inner sep=20] at (0,0) {};
+\node at (0.3,-0.6) {$\cD$};
+\node at (-1.9,-0.4) {$\R^n$};
+\node at (0.1, -0.2) {$\cX$};
+\node [tokens=1] (noeudat) at (-0.1,0.15) [label=right:{$x_t$}] {};
+\node [tokens=1] (noeudat1) at (-0.15,-0.1) [label=right:{$x_{t+1}$}] {};
+\node [tokens=1] (noeudwt1) at (-0.4,-0.45) [label=below right:{$y_{t+1}$}] {};
+\draw[->, thick] (noeudwt1) .. controls (-0.3, -0.45) and (-0.15, -0.2) .. (noeudat1) node[midway, below right] {projection \eqref{eq:MD2}};
+\node [tokens=1] (noeudmat) at (-1.62,0.15) [label=right:{$\nabla \Phi(x_t)$}] {};
+\node [tokens=1] (noeudmwt1) at (-1.42,-0.1) [label=right:{$\nabla \Phi(y_{t+1})$}] {};
+\draw[->, thick] (noeudmat) -- (noeudmwt1) node[midway, left] {\begin{tabular}{c} \\ gradient step \\ \eqref{eq:MD1} \end{tabular}};
+\draw[->, semithick] (noeudat) .. controls (-0.6,0.45) and (-1.12, 0.45) .. (noeudmat) node[midway, above] {$\nabla \Phi$}; 
+\draw[->, semithick] (noeudmwt1) .. controls (-1.22,-0.5) and (-0.44, -0.46) .. (noeudwt1) node[midway, below] {$(\nabla \Phi)^{-1}$}; 
+\end{tikzpicture}
+\caption{Illustration of mirror descent.}
+\label{fig:MD}
+\end{figure}
+
+\begin{theorem} \label{th:MD}
+Let $\Phi$ be a mirror map $\rho$-strongly convex on $\mathcal{X} \cap \mathcal{D}$ w.r.t. $\|\cdot\|$.
+Let $R^2 = \sup_{x \in \mathcal{X} \cap \mathcal{D}} \Phi(x) - \Phi(x_1)$, and $f$ be convex and $L$-Lipschitz w.r.t. $\|\cdot\|$. Then mirror descent with $\eta = \frac{R}{L} \sqrt{\frac{2 \rho}{t}}$ satisfies
+$$f\bigg(\frac{1}{t} \sum_{s=1}^t x_s \bigg) - f(x^*) \leq RL \sqrt{\frac{2}{\rho t}} .$$
+\end{theorem}
+
+\begin{proof}
+Let $x \in \mathcal{X} \cap \mathcal{D}$. The claimed bound will be obtained by taking a limit $x \rightarrow x^*$. Now by convexity of $f$, the definition of mirror descent, equation \eqref{eq:useful1}, and Lemma \ref{lem:todonow2}, one has
+\begin{align*}
+& f(x_s) - f(x) \\
+& \leq g_s^{\top} (x_s - x) \\
+& = \frac{1}{\eta} (\nabla \Phi(x_s) - \nabla \Phi(y_{s+1}))^{\top} (x_s - x) \\
+& = \frac{1}{\eta} \bigg( D_{\Phi}(x, x_s) + D_{\Phi}(x_s, y_{s+1}) - D_{\Phi}(x, y_{s+1}) \bigg) \\
+& \leq \frac{1}{\eta} \bigg( D_{\Phi}(x, x_s) + D_{\Phi}(x_s, y_{s+1}) - D_{\Phi}(x, x_{s+1}) - D_{\Phi}(x_{s+1}, y_{s+1}) \bigg) .
+\end{align*}
+The term $D_{\Phi}(x, x_s) -  D_{\Phi}(x, x_{s+1})$ will lead to a telescopic sum when summing over $s=1$ to $s=t$, and it remains to bound the other term as follows using $\rho$-strong convexity of the mirror map and $a z - b z^2 \leq \frac{a^2}{4 b}, \forall z \in \R$:
+\begin{align*}
+& D_{\Phi}(x_s, y_{s+1}) - D_{\Phi}(x_{s+1}, y_{s+1}) \\
+& = \Phi(x_s) - \Phi(x_{s+1}) - \nabla \Phi(y_{s+1})^{\top} (x_{s} - x_{s+1}) \\
+& \leq (\nabla \Phi(x_s) - \nabla \Phi(y_{s+1}))^{\top} (x_{s} - x_{s+1}) - \frac{\rho}{2} \|x_s - x_{s+1}\|^2 \\
+& = \eta g_s^{\top} (x_{s} - x_{s+1}) - \frac{\rho}{2} \|x_s - x_{s+1}\|^2 \\
+& \leq \eta L \|x_{s} - x_{s+1}\| - \frac{\rho}{2} \|x_s - x_{s+1}\|^2 \\
+& \leq \frac{(\eta L)^2}{2 \rho}.
+\end{align*}
+We proved 
+$$\sum_{s=1}^t \bigg(f(x_s) - f(x)\bigg) \leq \frac{D_{\Phi}(x,x_1)}{\eta} + \eta \frac{L^2 t}{2 \rho},$$
+which concludes the proof up to trivial computation.
+\end{proof}
+
+We observe that one can rewrite mirror descent as follows:
+\begin{eqnarray}
+x_{t+1} & = & \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \ D_{\Phi}(x,y_{t+1}) \notag \\
+& = & \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \ \Phi(x) - \nabla \Phi(y_{t+1})^{\top} x \label{eq:MD3} \\
+& = & \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \ \Phi(x) - (\nabla \Phi(x_{t}) - \eta g_t)^{\top} x \notag \\
+& = & \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \ \eta g_t^{\top} x + D_{\Phi}(x,x_t) . \label{eq:MDproxview}
+\end{eqnarray}
+This last expression is often taken as the definition of mirror descent (see \cite{BT03}). It gives a proximal point of view on mirror descent: the method is trying to minimize the local linearization of the function while not moving too far away from the previous point, with distances measured via the Bregman divergence of the mirror map.
+
+\section{Standard setups for mirror descent} \label{sec:mdsetups}
+\noindent \textbf{``Ball setup".} The simplest version of mirror descent is obtained by taking $\Phi(x) = \frac{1}{2} \|x\|^2_2$ on $\mathcal{D} = \mathbb{R}^n$. The function $\Phi$ is a mirror map strongly convex w.r.t. $\|\cdot\|_2$, and furthermore the associated Bregman divergence is given by $D_{\Phi}(x,y) = \frac{1}{2} \|x - y\|^2_2$. Thus in that case mirror descent is exactly equivalent to projected subgradient descent, and the rate of convergence obtained in Theorem \ref{th:MD} recovers our earlier result on projected subgradient descent.
+\newline
+
+\noindent
+\textbf{``Simplex setup".} A more interesting choice of a mirror map is given by the negative entropy
+$$\Phi(x) = \sum_{i=1}^n x(i) \log x(i),$$
+on $\mathcal{D} = \mathbb{R}_{++}^n$. In that case the gradient update $\nabla \Phi(y_{t+1}) = \nabla \Phi(x_t) - \eta \nabla f(x_t)$ can be written equivalently as
+$$y_{t+1}(i) = x_{t}(i) \exp\big(- \eta [\nabla f(x_t) ](i) \big) , \ i=1, \hdots, n.$$
+The Bregman divergence of this mirror map is given by $D_{\Phi}(x,y) = \sum_{i=1}^n x(i) \log \frac{x(i)}{y(i)}$ (also known as the Kullback-Leibler divergence). It is easy to verify that the projection with respect to this Bregman divergence on the simplex $\Delta_n = \{x \in \mathbb{R}_+^n : \sum_{i=1}^n x(i) = 1\}$ amounts to a simple renormalization $y \mapsto y / \|y\|_1$. Furthermore it is also easy to verify that $\Phi$ is $1$-strongly convex w.r.t. $\|\cdot\|_1$ on $\Delta_n$ (this result is known as Pinsker's inequality). Note also that for $\mathcal{X} = \Delta_n$ one has $x_1 = (1/n, \hdots, 1/n)$ and $R^2 = \log n$.
+
+The above observations imply that when minimizing on the simplex $\Delta_n$ a function $f$ with subgradients bounded in $\ell_{\infty}$-norm, mirror descent with the negative entropy achieves a rate of convergence of order $\sqrt{\frac{\log n}{t}}$. On the other hand the regular subgradient descent achieves only a rate of order $\sqrt{\frac{n}{t}}$ in this case!
+\newline
+
+\noindent
+\textbf{``Spectrahedron setup".} We consider here functions defined on matrices, and we are interested in minimizing a function $f$ on the {\em spectrahedron} $\mathcal{S}_n$ defined as:
+$$\mathcal{S}_n = \left\{X \in \mathbb{S}_+^n : \mathrm{Tr}(X) = 1 \right\} .$$
+In this setting we consider the mirror map on $\mathcal{D} = \mathbb{S}_{++}^n$ given by the negative von Neumann entropy:
+$$\Phi(X) = \sum_{i=1}^n \lambda_i(X) \log \lambda_i(X) ,$$
+where $\lambda_1(X), \hdots, \lambda_n(X)$ are the eigenvalues of $X$. It can be shown that the gradient update $\nabla \Phi(Y_{t+1}) = \nabla \Phi(X_t) - \eta \nabla f(X_t)$ can be written equivalently as
+$$Y_{t+1} = \exp\big(\log X_t - \eta \nabla f(X_t) \big) ,$$
+where the matrix exponential and matrix logarithm are defined as usual. Furthermore the projection on $\mathcal{S}_n$ is a simple trace renormalization.
+
+With highly non-trivial computation one can show that $\Phi$ is $\frac{1}{2}$-strongly convex with respect to the Schatten $1$-norm defined as
+$$\|X\|_1 = \sum_{i=1}^n \lambda_i(X).$$
+It is easy to see that for $\mathcal{X} = \mathcal{S}_n$ one has $x_1 = \frac{1}{n} \mI_n$ and $R^2 = \log n$. In other words the rate of convergence for optimization on the spectrahedron is the same than on the simplex!
+
+\section{Lazy mirror descent, aka Nesterov's dual averaging}
+In this section we consider a slightly more efficient version of mirror descent for which we can prove that Theorem \ref{th:MD} still holds true. This alternative algorithm can be advantageous in some situations (such as distributed settings), but the basic mirror descent scheme remains important for extensions considered later in this text (saddle points, stochastic oracles, ...). 
+
+In lazy mirror descent, also commonly known as Nesterov's dual averaging or simply dual averaging, one replaces \eqref{eq:MD1} by
+$$\nabla \Phi(y_{t+1}) = \nabla \Phi(y_{t}) - \eta g_t ,$$
+and also $y_1$ is such that $\nabla \Phi(y_1) = 0$. In other words instead of going back and forth between the primal and the dual, dual averaging simply averages the gradients in the dual, and if asked for a point in the primal it simply maps the current dual point to the primal using the same methodology as mirror descent. In particular using \eqref{eq:MD3} one immediately sees that dual averaging is defined by:
+\begin{equation} \label{eq:DA0}
+x_t = \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \ \eta \sum_{s=1}^{t-1} g_s^{\top} x + \Phi(x) .
+\end{equation}
+\begin{theorem}
+Let $\Phi$ be a mirror map $\rho$-strongly convex on $\mathcal{X} \cap \mathcal{D}$ w.r.t. $\|\cdot\|$.
+Let $R^2 = \sup_{x \in \mathcal{X} \cap \mathcal{D}} \Phi(x) - \Phi(x_1)$, and $f$ be convex and $L$-Lipschitz w.r.t. $\|\cdot\|$. Then dual averaging with $\eta = \frac{R}{L} \sqrt{\frac{\rho}{2 t}}$ satisfies
+$$f\bigg(\frac{1}{t} \sum_{s=1}^t x_s \bigg) - f(x^*) \leq 2 RL \sqrt{\frac{2}{\rho t}} .$$
+\end{theorem}
+
+\begin{proof}
+We define $\psi_t(x) = \eta \sum_{s=1}^{t} g_s^{\top} x + \Phi(x)$, so that $x_t \in  \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \psi_{t-1}(x)$. Since $\Phi$ is $\rho$-strongly convex one clearly has that $\psi_t$ is $\rho$-strongly convex, and thus
+\begin{eqnarray*}
+\psi_t(x_{t+1}) - \psi_t(x_t) & \leq & \nabla \psi_t(x_{t+1})^{\top}(x_{t+1} - x_{t}) - \frac{\rho}{2} \|x_{t+1} - x_t\|^2 \\
+& \leq & - \frac{\rho}{2} \|x_{t+1} - x_t\|^2 ,
+\end{eqnarray*}
+where the second inequality comes from the first order optimality condition for $x_{t+1}$ (see Proposition \ref{prop:firstorder}). Next observe that
+\begin{eqnarray*}
+\psi_t(x_{t+1}) - \psi_t(x_t) & = & \psi_{t-1}(x_{t+1}) - \psi_{t-1}(x_t) + \eta g_t^{\top} (x_{t+1} - x_t) \\
+& \geq & \eta g_t^{\top} (x_{t+1} - x_t) .
+\end{eqnarray*}
+Putting together the two above displays and using Cauchy-Schwarz (with the assumption $\|g_t\|_* \leq L$) one obtains
+$$\frac{\rho}{2} \|x_{t+1} - x_t\|^2 \leq \eta g_t^{\top} (x_t - x_{t+1}) \leq \eta L \|x_t - x_{t+1} \|.$$
+In particular this shows that $\|x_{t+1} - x_t\| \leq \frac{2 \eta L}{\rho}$ and thus with the above display
+\begin{equation} \label{eq:DA1}
+g_t^{\top} (x_t - x_{t+1}) \leq \frac{2 \eta L^2}{\rho} .
+\end{equation}
+Now we claim that for any $x \in \cX \cap \cD$,
+\begin{equation} \label{eq:DA2}
+\sum_{s=1}^t g_s^{\top} (x_s - x) \leq \sum_{s=1}^t g_s^{\top} (x_s - x_{s+1}) + \frac{\Phi(x) - \Phi(x_1)}{\eta} ,
+\end{equation}
+which would clearly conclude the proof thanks to \eqref{eq:DA1} and straightforward computations. Equation \eqref{eq:DA2} is equivalent to 
+$$\sum_{s=1}^t g_s^{\top} x_{s+1} + \frac{\Phi(x_1)}{\eta} \leq \sum_{s=1}^t g_s^{\top} x + \frac{\Phi(x)}{\eta} ,$$
+and we now prove the latter equation by induction. At $t=0$ it is true since $x_1 \in \argmin_{x \in \cX \cap \cD} \Phi(x)$. The following inequalities prove the inductive step, where we use the induction hypothesis at $x=x_{t+1}$ for the first inequality, and the definition of $x_{t+1}$ for the second inequality:
+$$\sum_{s=1}^{t} g_s^{\top} x_{s+1} + \frac{\Phi(x_1)}{\eta} \leq g_{t}^{\top}x_{t+1} + \sum_{s=1}^{t-1} g_s^{\top} x_{t+1} + \frac{\Phi(x_{t+1})}{\eta} \leq \sum_{s=1}^{t} g_s^{\top} x + \frac{\Phi(x)}{\eta} .$$
+\end{proof}
+
+\section{Mirror prox}
+It can be shown that mirror descent accelerates for smooth functions to the rate $1/t$. We will prove this result in Chapter \ref{rand} (see Theorem \ref{th:SMDsmooth}). We describe here a variant of mirror descent which also attains the rate $1/t$ for smooth functions. This method is called mirror prox and it was introduced in \cite{Nem04}. 
+%On the contrary to the situation of Section \ref{sec:MD} we already know an algorithm that can deal with smoothness in an arbitrary norm: this is the Conditional Gradient Descent described in Section \ref{sec:FW}. As we will see below mirror prox attains the same rate of convergence than Conditional Gradient Descent.
+The true power of mirror prox will reveal itself later in the text when we deal with smooth representations of non-smooth functions as well as stochastic oracles\footnote{Basically mirror prox allows for a smooth vector field point of view (see Section \ref{sec:vectorfield}), while mirror descent does not.}.
+
+Mirror prox is described by the following equations:
+\begin{align*}
+& \nabla \Phi(y_{t+1}') = \nabla \Phi(x_{t}) - \eta \nabla f(x_t), \\ \\
+& y_{t+1} \in \argmin_{x \in \mathcal{X} \cap \mathcal{D}} D_{\Phi}(x,y_{t+1}') , \\  \\
+& \nabla \Phi(x_{t+1}') = \nabla \Phi(x_{t}) - \eta \nabla f(y_{t+1}), \\ \\
+& x_{t+1} \in \argmin_{x \in \mathcal{X} \cap \mathcal{D}} D_{\Phi}(x,x_{t+1}') .
+\end{align*}
+In words the algorithm first makes a step of mirror descent to go from $x_t$ to $y_{t+1}$, and then it makes a similar step to obtain $x_{t+1}$, starting again from $x_t$ but this time using the gradient of $f$ evaluated at $y_{t+1}$ (instead of $x_t$), see Figure \ref{fig:mp} for an illustration. The following result justifies the procedure.
+
+\begin{figure}
+\begin{tikzpicture}[scale=4]
+\clip (-2.4,-0.7) rectangle (0.5,1);
+\draw[rotate=30, very thick] (0,-0.5) ellipse (0.73 and 1);
+\draw[very thick] (-2,0) ellipse (1 and 0.5);
+\node (S) [very thick, regular polygon, regular polygon sides=6, draw,
+inner sep=22] at (0,0) {};
+\node at (0.3,-0.6) {$\cD$};
+\node at (-2.2,-0.4) {$\R^n$};
+\node at (0.12, -0.22) {$\cX$};
+\node [tokens=1] (noeudat) at (-0.1,0.15) [label=right:{$x_t$}] {};
+\node [tokens=1] (noeudat1) at (-0.15,-0.13) [label=right:{$y_{t+1}$}] {};
+\node [tokens=1] (noeudwt1) at (-0.4,-0.45) [label=below right:{$y_{t+1}'$}] {};
+\draw[->, thick] (noeudwt1) .. controls (-0.3, -0.45) and (-0.15, -0.2) .. (noeudat1) node[midway, below right] {projection};
+\node [tokens=1] (noeudat3) at (-0.2,0) [label=right:{$x_{t+1}$}] {};
+\node [tokens=1] (noeudwt3) at (-0.3,-0.2) [label=left:{$x_{t+1}'$}] {};
+\draw[->, thick] (noeudwt3) .. controls (-0.22, -0.12) and (-0.22, -0.1) .. (noeudat3) {};
+\node [tokens=1] (noeudmat) at (-1.7,0.3) [label=right:{$\nabla \Phi(x_t)$}] {};
+\node [tokens=1] (noeudmwt1) at (-2,-0.2) [label=below right:{$\nabla \Phi(y_{t+1}')$}] {};
+\node [tokens=1] (noeudmwt2) at (-1.6,-0.1) [label=right:{$\nabla \Phi(x_{t+1}')$}] {};
+\draw[->, thick] (noeudmat) -- (noeudmwt2) node[midway, right] {$- \eta \nabla f(y_{t+1})$};
+\draw[->, thick, dashed] (noeudmat) -- (noeudmwt1) node[midway, left] {$- \eta \nabla f(x_t)$};
+\draw[->, semithick] (-0.4,0.5) .. controls (-0.7,0.6) and (-1, 0.6) .. (-1.3,0.5) node[midway, above] {$\nabla \Phi$}; 
+\draw[->, semithick] (-1.45,-0.5) .. controls (-1.15,-0.6) and (-0.85, -0.6) .. (-0.55,-0.5) node[midway, below] {$(\nabla \Phi)^{-1}$}; 
+\end{tikzpicture}
+\caption{Illustration of mirror prox.}
+\label{fig:mp}
+\end{figure}
+%
+%\begin{figure}
+%\begin{tikzpicture}[scale=4]
+%\clip (-2.2,-0.62) rectangle (0.4,0.59);
+%\draw[rotate=30, very thick] (0,-0.5) ellipse (0.67 and 1);
+%\draw[very thick] (-2,0) ellipse (1.3 and 0.59);
+%\node (S) [very thick, regular polygon, regular polygon sides=6, draw,
+%inner sep=20] at (0,0) {};
+%\node at (0.3,-0.5) {$\cD$};
+%\node at (-2.1,-0.53) {$\R^n$};
+%\node at (0.1, -0.2) {$\cX$};
+%
+%\node [tokens=1] (noeudat) at (-0.1,0.15) [label=right:{$x_t$}] {};
+%
+%
+%\node [tokens=1] (noeudat) at (-0.1,0.15) [label=right:{$x_t$}] {};
+%\node [tokens=1] (noeudwtprime) at (-0.37,0.2) [label=right:{$w_{t}'$}] {};
+%\node [tokens=1] (noeudat1) at (-0.15,-0.1) [label=right:{$x_{t+1}$}] {};
+%\node [tokens=1] (noeudwt1prime) at (-0.4,-0.35) [label=below right:{$w_{t+1}'$}] {};
+%
+%\node [tokens=1] (noeudmwt) at (-1.72,0.25) [label=right:{$\nabla F(w_t)$}] {};
+%\node [tokens=1] (noeudmwtprime) at (-1.35,0.1) [label=right:{$\nabla F(w_t')$}] {};
+%\node [tokens=1] (noeudmwt1) at (-1.42,-0.1) [label=right:{$\nabla F(w_{t+1})$}] {};
+%\node [tokens=1] (noeudmwt1prime) at (-1.8, -0.4) [label=right:{$\nabla \Phi(w_{t+1}')$}] {};
+%\node [tokens=1] (noeudmwtm1) at (-1.9, 0.4) [label=right:{$\nabla F(w_{t-1})$}] {};
+%\node [tokens=1] (noeudmwt2) at (-1.8, -0.25) [label=left:{$\nabla F(w_{t+2})$}] {};
+%
+%\draw[->, thick, dashed] (noeudmwtm1) -- (noeudmwt);
+%\draw[->, thick] (noeudwtprime) .. controls (-0.35, 0.13) and (-0.15, 0.15) .. (noeudat);
+%\draw[->, thick] (noeudwt1prime) .. controls (-0.3, -0.35) and (-0.15, -0.2) .. (noeudat1) node[midway, below right] {projection \eqref{eq:TSMD3}};
+%\draw[->, thick] (noeudmwt) -- (noeudmwtprime);
+%\draw[->, thick] (noeudmwt) -- (noeudmwt1) node[midway, left] {\begin{tabular}{c} \\ gradient step \\ \eqref{eq:TSMD1} \end{tabular}};
+%\draw[->, thick] (noeudmwt1) -- (noeudmwt1prime) node[midway, right] {\begin{tabular}{c} \\ optimistic gradient \\ step \eqref{eq:TSMD2} \end{tabular}};
+%\draw[->, thick, dashed] (noeudmwt1) -- (noeudmwt2);
+%
+%\draw[->, semithick] (noeudmwtprime) .. controls (-1.15,0.4) and (-0.5, 0.3) .. (noeudwtprime) node[midway, above] {$\nabla F^*$}; 
+%\draw[->, semithick] (noeudmwt1prime) .. controls (-1.7,-0.6) and (-0.5, -0.55) .. (noeudwt1prime) node[midway, below] {$\nabla F^*$}; 
+%\end{tikzpicture}
+%\caption{Illustration of Two-Steps mirror descent.}
+%\label{fig:mp}
+%\end{figure}
+
+\begin{theorem}
+Let $\Phi$ be a mirror map $\rho$-strongly convex on $\mathcal{X} \cap \mathcal{D}$ w.r.t. $\|\cdot\|$. Let $R^2 = \sup_{x \in \mathcal{X} \cap \mathcal{D}} \Phi(x) - \Phi(x_1)$, and $f$ be convex and $\beta$-smooth w.r.t. $\|\cdot\|$. Then mirror prox with $\eta = \frac{\rho}{\beta}$ satisfies
+$$f\bigg(\frac{1}{t} \sum_{s=1}^t y_{s+1} \bigg) - f(x^*) \leq \frac{\beta R^2}{\rho t} .$$
+\end{theorem}
+
+\begin{proof}
+Let $x \in \mathcal{X} \cap \mathcal{D}$. We write
+\begin{eqnarray*}
+f(y_{t+1}) - f(x) & \leq & \nabla f(y_{t+1})^{\top} (y_{t+1} - x) \\
+& = & \nabla f(y_{t+1})^{\top} (x_{t+1} - x) + \nabla f(x_t)^{\top} (y_{t+1} - x_{t+1}) \\
+& & + (\nabla f(y_{t+1}) - \nabla f(x_t))^{\top} (y_{t+1} - x_{t+1}) .
+\end{eqnarray*}
+We will now bound separately these three terms. For the first one, using the definition of the method, Lemma \ref{lem:todonow2}, and equation \eqref{eq:useful1}, one gets
+\begin{align*}
+& \eta \nabla f(y_{t+1})^{\top} (x_{t+1} - x) \\
+& = ( \nabla \Phi(x_t) - \nabla \Phi(x_{t+1}'))^{\top} (x_{t+1} - x) \\
+& \leq ( \nabla \Phi(x_t) - \nabla \Phi(x_{t+1}))^{\top} (x_{t+1} - x) \\
+& = D_{\Phi}(x,x_t) - D_{\Phi}(x, x_{t+1}) - D_{\Phi}(x_{t+1}, x_t) .
+\end{align*}
+For the second term using the same properties than above and the strong-convexity of the mirror map one obtains
+\begin{align}
+& \eta \nabla f(x_t)^{\top} (y_{t+1} - x_{t+1}) \notag\\
+& = ( \nabla \Phi(x_t) - \nabla \Phi(y_{t+1}'))^{\top} (y_{t+1} - x_{t+1}) \notag\\
+& \leq ( \nabla \Phi(x_t) - \nabla \Phi(y_{t+1}))^{\top} (y_{t+1} - x_{t+1}) \notag\\
+& = D_{\Phi}(x_{t+1},x_t) - D_{\Phi}(x_{t+1}, y_{t+1}) - D_{\Phi}(y_{t+1}, x_t) \label{eq:pourplustard1}\\
+& \leq D_{\Phi}(x_{t+1},x_t) - \frac{\rho}{2} \|x_{t+1} - y_{t+1} \|^2 - \frac{\rho}{2} \|y_{t+1} - x_t\|^2 . \notag
+\end{align}
+Finally for the last term, using Cauchy-Schwarz, $\beta$-smoothness, and $2 ab \leq a^2 + b^2$ one gets
+\begin{align*}
+& (\nabla f(y_{t+1}) - \nabla f(x_t))^{\top} (y_{t+1} - x_{t+1}) \\
+& \leq \|\nabla f(y_{t+1}) - \nabla f(x_t)\|_*  \cdot \|y_{t+1} - x_{t+1} \| \\
+& \leq \beta \|y_{t+1} - x_t\| \cdot \|y_{t+1} - x_{t+1} \| \\
+& \leq \frac{\beta}{2} \|y_{t+1} - x_t\|^2 + \frac{\beta}{2}  \|y_{t+1} - x_{t+1} \|^2 . 
+\end{align*}
+Thus summing up these three terms and using that $\eta = \frac{\rho}{\beta}$ one gets
+$$f(y_{t+1}) - f(x) \leq \frac{D_{\Phi}(x,x_t) - D_{\Phi}(x,x_{t+1})}{\eta} .$$
+The proof is concluded with straightforward computations.
+\end{proof}
+
+\section{The vector field point of view on MD, DA, and MP} \label{sec:vectorfield}
+In this section we consider a mirror map $\Phi$ that satisfies the assumptions from Theorem \ref{th:MD}.
+
+By inspecting the proof of Theorem \ref{th:MD} one can see that for arbitrary vectors $g_1, \hdots, g_t \in \R^n$ the mirror descent strategy described by \eqref{eq:MD1} or \eqref{eq:MD2} (or alternatively by \eqref{eq:MDproxview}) satisfies for any $x \in \cX \cap \cD$,
+\begin{equation} \label{eq:vfMD}
+\sum_{s=1}^t g_s^{\top} (x_s - x) \leq \frac{R^2}{\eta} + \frac{\eta}{2 \rho} \sum_{s=1}^t \|g_s\|_*^2 .
+\end{equation}
+The observation that the sequence of vectors $(g_s)$ does not have to come from the subgradients of a {\em fixed} function $f$ is the starting point for the theory of online learning, see \cite{Bub11} for more details. In this monograph we will use this observation to generalize mirror descent to saddle point calculations as well as stochastic settings. We note that we could also use dual averaging (defined by \eqref{eq:DA0}) which satisfies
+%\begin{equation} \label{eq:vfDA}
+$$\sum_{s=1}^t g_s^{\top} (x_s - x) \leq \frac{R^2}{\eta} + \frac{2 \eta}{\rho} \sum_{s=1}^t \|g_s\|_*^2 .$$
+%\end{equation}
+In order to generalize mirror prox we simply replace the gradient $\nabla f$ by an arbitrary vector field $g: \cX \rightarrow \R^n$ which yields the following equations:
+\begin{align*}
+& \nabla \Phi(y_{t+1}') = \nabla \Phi(x_{t}) - \eta g(x_t), \\
+& y_{t+1} \in \argmin_{x \in \mathcal{X} \cap \mathcal{D}} D_{\Phi}(x,y_{t+1}') , \\ 
+& \nabla \Phi(x_{t+1}') = \nabla \Phi(x_{t}) - \eta g(y_{t+1}), \\
+& x_{t+1} \in \argmin_{x \in \mathcal{X} \cap \mathcal{D}} D_{\Phi}(x,x_{t+1}') .
+\end{align*}
+Under the assumption that the vector field is $\beta$-Lipschitz w.r.t. $\|\cdot\|$, i.e., $\|g(x) - g(y)\|_* \leq \beta \|x-y\|$ one obtains with $\eta = \frac{\rho}{\beta}$
+\begin{equation} \label{eq:vfMP}
+\sum_{s=1}^t g(y_{s+1})^{\top}(y_{s+1} - x) \leq \frac{\beta R^2}{\rho}.
+\end{equation}

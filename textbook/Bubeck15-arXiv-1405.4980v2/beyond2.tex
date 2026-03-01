@@ -1,0 +1,370 @@
+In the black-box model non-smoothness dramatically deteriorates the rate of convergence of first order methods from $1/t^2$ to $1/\sqrt{t}$. However, as we already pointed out in Section \ref{sec:structured}, we (almost) always know the function to be optimized {\em globally}. In particular the ``source" of non-smoothness can often be identified. For instance the LASSO objective (see Section \ref{sec:mlapps}) is non-smooth, but it is a sum of a smooth part (the least squares fit) and a {\em simple} non-smooth part (the $\ell_1$-norm). Using this specific structure we will propose in Section \ref{sec:simplenonsmooth} a first order method with a $1/t^2$ convergence rate, despite the non-smoothness. In Section \ref{sec:sprepresentation} we consider another type of non-smoothness that can effectively be overcome, where the function is the maximum of smooth functions. Finally we conclude this chapter with a concise description of interior point methods, for which the structural assumption is made on the constraint set rather than on the objective function.
+
+\section{Sum of a smooth and a simple non-smooth term} \label{sec:simplenonsmooth}
+We consider here the following problem\footnote{We restrict to unconstrained minimization for sake of simplicity. One can extend the discussion to constrained minimization by using ideas from Section \ref{sec:gdsmooth}.}:
+$$\min_{x \in \R^n} f(x) + g(x) ,$$
+where $f$ is convex and $\beta$-smooth, and $g$ is convex. We assume that $f$ can be accessed through a first order oracle, and that $g$ is known and ``simple". What we mean by simplicity will be clear from the description of the algorithm. For instance a separable function, that is $g(x) = \sum_{i=1}^n g_i(x(i))$, will be considered as simple. The prime example being $g(x) = \|x\|_1$. This section is inspired from \cite{BT09} (see also \cite{Nes07, WNF09}).
+
+\section*{ISTA (Iterative Shrinkage-Thresholding Algorithm)}
+Recall that gradient descent on the smooth function $f$ can be written as (see \eqref{eq:MDproxview})
+$$x_{t+1} = \argmin_{x \in \mathbb{R}^n} \eta \nabla f(x_t)^{\top} x + \frac{1}{2} \|x - x_t\|^2_2 .$$
+Here one wants to minimize $f+g$, and $g$ is assumed to be known and ``simple". Thus it seems quite natural to consider the following update rule, where only $f$ is locally approximated with a first order oracle:
+\begin{eqnarray}
+x_{t+1} & = & \argmin_{x \in \mathbb{R}^n} \eta (g(x) + \nabla f(x_t)^{\top} x) + \frac{1}{2} \|x - x_t\|^2_2 \notag \\
+& = & \argmin_{x \in \mathbb{R}^n} \ g(x) + \frac{1}{2\eta} \|x - (x_t - \eta \nabla f(x_t)) \|_2^2 . \label{eq:proxoperator}
+\end{eqnarray}
+The algorithm described by the above iteration is known as ISTA (Iterative Shrinkage-Thresholding Algorithm). In terms of convergence rate it is easy to show that ISTA has the same convergence rate on $f+g$ as gradient descent on $f$. More precisely with $\eta=\frac{1}{\beta}$ one has
+$$f(x_t) + g(x_t) - (f(x^*) + g(x^*)) \leq \frac{\beta \|x_1 - x^*\|^2_2}{2 t} .$$
+This improved convergence rate over a subgradient descent directly on $f+g$ comes at a price: in general \eqref{eq:proxoperator} may be a difficult optimization problem by itself, and this is why one needs to assume that $g$ is simple. For instance if $g$ can be written as $g(x) = \sum_{i=1}^n g_i(x(i))$ then one can compute $x_{t+1}$ by solving $n$ convex problems in dimension $1$. In the case where $g(x) = \lambda \|x\|_1$ this one-dimensional problem is given by:
+$$\min_{x \in \mathbb{R}} \ \lambda |x| + \frac{1}{2 \eta}(x - x_0)^2, \ \text{where} \ x_0 \in \mathbb{R} .$$
+Elementary computations shows that this problem has an analytical solution given by $\tau_{\lambda \eta}(x_0)$,
+where $\tau$ is the shrinkage operator (hence the name ISTA), defined by
+$$\tau_{\alpha}(x) = (|x|-\alpha)_+ \mathrm{sign}(x) .$$
+Much more is known about \eqref{eq:proxoperator} (which is called the {\em proximal operator} of $g$), and in fact entire monographs have been written about this equation, see e.g. \cite{PB13, BJMO12}.
+
+\section*{FISTA (Fast ISTA)}
+An obvious idea is to combine Nesterov's accelerated gradient descent (which results in a $1/t^2$ rate to optimize $f$) with ISTA. This results in FISTA (Fast ISTA) which is described as follows. Let
+$$\lambda_0 = 0, \ \lambda_{t} = \frac{1 + \sqrt{1+ 4 \lambda_{t-1}^2}}{2}, \ \text{and} \  \gamma_t = \frac{1 - \lambda_t}{\lambda_{t+1}}.$$
+Let $x_1 = y_1$ an arbitrary initial point, and
+\begin{eqnarray*}
+y_{t+1} & = & \mathrm{argmin}_{x \in \mathbb{R}^n} \ g(x) + \frac{\beta}{2} \|x - (x_t - \frac1{\beta} \nabla f(x_t)) \|_2^2 , \\
+x_{t+1} & = & (1 - \gamma_t) y_{t+1} + \gamma_t y_t .
+\end{eqnarray*}
+Again it is easy show that the rate of convergence of FISTA on $f+g$ is similar to the one of Nesterov's accelerated gradient descent on $f$, more precisely:
+$$f(y_t) + g(y_t) - (f(x^*) + g(x^*)) \leq \frac{2 \beta \|x_1 - x^*\|^2}{t^2} .$$
+
+\section*{CMD and RDA}
+ISTA and FISTA assume smoothness in the Euclidean metric. Quite naturally one can also use these ideas in a non-Euclidean setting. Starting from \eqref{eq:MDproxview} one obtains the CMD (Composite Mirror Descent) algorithm of \cite{DSSST10}, while with \eqref{eq:DA0} one obtains the RDA (Regularized Dual Averaging) of \cite{Xia10}. We refer to these papers for more details.
+
+\section{Smooth saddle-point representation of a non-smooth function} \label{sec:sprepresentation}
+Quite often the non-smoothness of a function $f$ comes from a $\max$ operation. More precisely non-smooth functions can often be represented as
+\begin{equation} \label{eq:sprepresentation}
+f(x) = \max_{1 \leq i \leq m} f_i(x) ,
+\end{equation}
+where the functions $f_i$ are smooth. This was the case for instance with the function we used to prove the black-box lower bound $1/\sqrt{t}$ for non-smooth optimization in Theorem \ref{th:lb1}. We will see now that by using this structural representation one can in fact attain a rate of $1/t$. This was first observed in \cite{Nes04b} who proposed the Nesterov's smoothing technique. Here we will present the alternative method of \cite{Nem04} which we find more transparent (yet another version is the Chambolle-Pock algorithm, see \cite{CP11}). Most of what is described in this section can be found in \cite{JN11a, JN11b}.
+
+In the next subsection we introduce the more general problem of saddle point computation. We then proceed to apply a modified version of mirror descent to this problem, which will be useful both in Chapter \ref{rand} and also as a warm-up for the more powerful modified mirror prox that we introduce next.
+
+\subsection{Saddle point computation} \label{sec:sp}
+Let $\cX \subset \R^n$, $\cY \subset \R^m$ be compact and convex sets. Let $\phi : \cX \times \cY \rightarrow \mathbb{R}$ be a continuous function, such that $\phi(\cdot, y)$ is convex and $\phi(x, \cdot)$ is concave. We write $g_{\cX}(x,y)$ (respectively $g_{\cY}(x,y)$) for an element of $\partial_x \phi(x,y)$ (respectively $\partial_y (-\phi(x,y))$). We are interested in computing
+$$\min_{x \in \cX} \max_{y \in \cY} \phi(x,y) .$$
+By Sion's minimax theorem there exists a pair $(x^*, y^*) \in \cX \times \cY$ such that
+$$\phi(x^*,y^*) = \min_{x \in \mathcal{X}} \max_{y \in \mathcal{Y}} \phi(x,y) = \max_{y \in \mathcal{Y}} \min_{x \in \mathcal{X}} \phi(x,y) .$$
+We will explore algorithms that produce a candidate pair of solutions $(\tx, \ty) \in \cX \times \cY$. The quality of $(\tx, \ty)$ is evaluated through the so-called duality gap\footnote{Observe that the duality gap is the sum of the primal gap $\max_{y \in \mathcal{Y}} \phi(\tx,y) - \phi(x^*,y^*)$ and the dual gap $\phi(x^*,y^*) - \min_{x \in \mathcal{X}} \phi(x, \ty)$.}
+$$\max_{y \in \mathcal{Y}} \phi(\tx,y) - \min_{x \in \mathcal{X}} \phi(x,\ty) .$$
+The key observation is that the duality gap can be controlled similarly to the suboptimality gap $f(x) - f(x^*)$ in a simple convex optimization problem. Indeed for any $(x, y) \in \cX \times \cY$,
+$$\phi(\tx,\ty) - \phi(x,\ty) \leq g_{\cX}(\tx,\ty)^{\top} (\tx-x),$$
+and 
+$$- \phi(\tx,\ty) - (- \phi(\tx,y)) \leq g_{\cY}(\tx,\ty)^{\top} (\ty-y) .$$
+In particular, using the notation $z = (x,y) \in \cZ := \cX \times \cY$ and $g(z) = (g_{\cX}(x,y), g_{\cY}(x,y))$ we just proved
+\begin{equation} \label{eq:keysp}
+\max_{y \in \mathcal{Y}} \phi(\tx,y) - \min_{x \in \mathcal{X}} \phi(x,\ty) \leq g(\tz)^{\top} (\tz - z) , 
+\end{equation}
+for some $z \in \mathcal{Z}.$ In view of the vector field point of view developed in Section \ref{sec:vectorfield} this suggests to do a mirror descent in the $\cZ$-space with the vector field $g : \cZ \rightarrow \R^n \times \R^m$. 
+
+We will assume in the next subsections that $\cX$ is equipped with a mirror map $\Phi_{\cX}$ (defined on $\cD_{\cX}$) which is $1$-strongly convex w.r.t. a norm $\|\cdot\|_{\cX}$ on $\cX \cap \cD_{\cX}$. We denote $R^2_{\cX} = \sup_{x \in \cX} \Phi(x) - \min_{x \in \cX} \Phi(x)$. We define similar quantities for the space $\cY$.
+
+\subsection{Saddle Point Mirror Descent (SP-MD)} \label{sec:spmd}
+We consider here mirror descent on the space $\cZ = \cX \times \cY$ with the mirror map $\Phi(z) = a \Phi_{\cX}(x) + b \Phi_{\cY}(y)$ (defined on $\cD = \cD_{\cX} \times \cD_{\cY}$), where $a, b \in \R_+$ are to be defined later, and with the vector field $g : \cZ \rightarrow \R^n \times \R^m$ defined in the previous subsection. We call the resulting algorithm SP-MD (Saddle Point Mirror Descent). It can be described succintly as follows.
+
+Let $z_1 \in \argmin_{z \in \cZ \cap \cD} \Phi(z)$. Then for $t \geq 1$, let
+$$z_{t+1} \in \argmin_{z \in \cZ \cap \cD} \ \eta g_t^{\top} z + D_{\Phi}(z,z_t) ,$$
+where $g_t = (g_{\cX,t}, g_{\cY,t})$ with $g_{\cX,t} \in \partial_x \phi(x_t,y_t)$ and $g_{\cY,t} \in \partial_y (- \phi(x_t,y_t))$.
+
+\begin{theorem} \label{th:spmd}
+Assume that $\phi(\cdot, y)$ is $L_{\cX}$-Lipschitz w.r.t. $\|\cdot\|_{\cX}$, that is $\|g_{\cX}(x,y)\|_{\cX}^* \leq L_{\cX}, \forall (x, y) \in \cX \times \cY$. Similarly assume that $\phi(x, \cdot)$ is $L_{\cY}$-Lipschitz w.r.t. $\|\cdot\|_{\cY}$. Then SP-MD with $a= \frac{L_{\cX}}{R_{\cX}}$, $b=\frac{L_{\cY}}{R_{\cY}}$, and $\eta=\sqrt{\frac{2}{t}}$ satisfies
+$$\max_{y \in \mathcal{Y}} \phi\left( \frac1{t} \sum_{s=1}^t x_s,y \right) - \min_{x \in \mathcal{X}} \phi\left(x, \frac1{t} \sum_{s=1}^t y_s \right) \leq (R_{\cX} L_{\cX} + R_{\cY} L_{\cY}) \sqrt{\frac{2}{t}}.$$
+\end{theorem}
+
+\begin{proof}
+First we endow $\mathcal{Z}$ with the norm $\|\cdot\|_{\cZ}$ defined by
+$$\|z\|_{\cZ} = \sqrt{a \|x\|_{\mathcal{X}}^2 + b \|y\|_{\mathcal{Y}}^2} .$$
+It is immediate that $\Phi$ is $1$-strongly convex with respect to $\|\cdot\|_{\mathcal{Z}}$ on $\mathcal{Z} \cap \mathcal{D}$. Furthermore one can easily check that
+$$\|z\|_{\mathcal{Z}}^* = \sqrt{\frac1{a} \left(\|x\|_{\mathcal{X}}^*\right)^2 + \frac1{b} \left(\|y\|_{\mathcal{Y}}^*\right)^2} ,$$
+and thus the vector field $(g_t)$ used in the SP-MD satisfies:
+$$\|g_t\|_{\mathcal{Z}}^* \leq \sqrt{\frac{L_{\mathcal{X}}^2}{a} + \frac{L_{\mathcal{Y}}^2}{b}} .$$
+Using \eqref{eq:vfMD} together with \eqref{eq:keysp} and the values of $a, b$ and $\eta$ concludes the proof.
+\end{proof}
+
+\subsection{Saddle Point Mirror Prox (SP-MP)}
+We now consider the most interesting situation in the context of this chapter, where the function $\phi$ is smooth. Precisely we say that $\phi$ is $(\beta_{11}, \beta_{12}, \beta_{22}, \beta_{21})$-smooth if for any $x, x' \in \cX, y, y' \in \cY$, 
+\begin{align*}
+& \|\nabla_x \phi(x,y) - \nabla_x \phi(x',y) \|_{\mathcal{X}}^* \leq \beta_{11} \|x-x'\|_{\mathcal{X}} , \\
+& \|\nabla_x \phi(x,y) - \nabla_x \phi(x,y') \|_{\mathcal{X}}^* \leq \beta_{12} \|y-y'\|_{\mathcal{Y}} , \\
+& \|\nabla_y \phi(x,y) - \nabla_y \phi(x,y') \|_{\mathcal{Y}}^* \leq \beta_{22} \|y-y'\|_{\mathcal{Y}} , \\
+& \|\nabla_y \phi(x,y) - \nabla_y \phi(x',y) \|_{\mathcal{Y}}^* \leq \beta_{21} \|x-x'\|_{\mathcal{X}} ,
+\end{align*}
+This will imply the Lipschitzness of the vector field $g : \cZ \rightarrow \R^n \times \R^m$ under the appropriate norm. Thus we use here mirror prox on the space $\cZ$ with the mirror map $\Phi(z) = a \Phi_{\cX}(x) + b \Phi_{\cY}(y)$ and the vector field $g$. The resulting algorithm is called SP-MP (Saddle Point Mirror Prox) and we can describe it succintly as follows.
+
+Let $z_1 \in \argmin_{z \in \cZ \cap \cD} \Phi(z)$. Then for $t \geq 1$, let $z_t=(x_t,y_t)$ and $w_t=(u_t, v_t)$ be defined by
+\begin{eqnarray*}
+w_{t+1} & = & \argmin_{z \in \cZ \cap \cD} \ \eta (\nabla_x \phi(x_t, y_t), - \nabla_y \phi(x_t,y_t))^{\top} z + D_{\Phi}(z,z_t) \\
+z_{t+1} & = & \argmin_{z \in \cZ \cap \cD} \ \eta (\nabla_x \phi(u_{t+1}, v_{t+1}), - \nabla_y \phi(u_{t+1},v_{t+1}))^{\top} z + D_{\Phi}(z,z_t) .
+\end{eqnarray*}
+
+\begin{theorem} \label{th:spmp}
+Assume that $\phi$ is $(\beta_{11}, \beta_{12}, \beta_{22}, \beta_{21})$-smooth. Then SP-MP with $a= \frac{1}{R_{\cX}^2}$, $b=\frac{1}{R_{\cY}^2}$, and 
+%$\eta= 1 / \left(\sqrt{2} \left(\beta_{11} R^2_{\cX} + \beta_{22} R^2_{\cY} + (\beta_{12} + \beta_{21}) R_{\cX} R_{\cY}\right) \right)$ 
+$\eta= 1 / \left(2 \max \left(\beta_{11} R^2_{\cX}, \beta_{22} R^2_{\cY}, \beta_{12} R_{\cX} R_{\cY}, \beta_{21} R_{\cX} R_{\cY}\right) \right)$
+satisfies
+\begin{align*}
+& \max_{y \in \mathcal{Y}} \phi\left( \frac1{t} \sum_{s=1}^t u_{s+1},y \right) - \min_{x \in \mathcal{X}} \phi\left(x, \frac1{t} \sum_{s=1}^t v_{s+1} \right) \\
+& \leq \max \left(\beta_{11} R^2_{\cX}, \beta_{22} R^2_{\cY}, \beta_{12} R_{\cX} R_{\cY}, \beta_{21} R_{\cX} R_{\cY}\right) \frac{4}{t} .
+\end{align*}
+\end{theorem}
+
+\begin{proof}
+In light of the proof of Theorem \ref{th:spmd} and \eqref{eq:vfMP} it clearly suffices to show that the vector field $g(z) = (\nabla_x \phi(x,y), - \nabla_y \phi_(x,y))$ is $\beta$-Lipschitz w.r.t. $\|z\|_{\cZ} = \sqrt{\frac{1}{R_{\cX}^2} \|x\|_{\mathcal{X}}^2 + \frac{1}{R_{\cY}^2} \|y\|_{\mathcal{Y}}^2}$ with $\beta = 2 \max \left(\beta_{11} R^2_{\cX}, \beta_{22} R^2_{\cY}, \beta_{12} R_{\cX} R_{\cY}, \beta_{21} R_{\cX} R_{\cY}\right)$. In other words one needs to show that
+$$\|g(z) - g(z')\|_{\cZ}^* \leq \beta \|z - z'\|_{\cZ} ,$$
+which can be done with straightforward calculations (by introducing $g(x',y)$ and using the definition of smoothness for $\phi$).
+\end{proof}
+
+\subsection{Applications} \label{sec:spex}
+We investigate briefly three applications for SP-MD and SP-MP.
+
+\subsubsection{Minimizing a maximum of smooth functions} \label{sec:spex1}
+The problem \eqref{eq:sprepresentation} (when $f$ has to minimized over $\cX$) can be rewritten as
+$$\min_{x \in \cX} \max_{y \in \Delta_m} \vec{f}(x)^{\top} y ,$$
+where $\vec{f}(x) = (f_1(x), \hdots, f_m(x)) \in \R^m$. We assume that the functions $f_i$ are $L$-Lipschtiz and $\beta$-smooth w.r.t. some norm $\|\cdot\|_{\cX}$. Let us study the smoothness of $\phi(x,y) = \vec{f}(x)^{\top} y$ when $\cX$ is equipped with $\|\cdot\|_{\cX}$ and $\Delta_m$ is equipped with $\|\cdot\|_1$. On the one hand $\nabla_y \phi(x,y) = \vec{f}(x)$, in particular one immediately has $\beta_{22}=0$, and furthermore
+$$ \|\vec{f}(x)  - \vec{f}(x') \|_{\infty} \leq L \|x-x'\|_{\mathcal{X}} , $$
+that is $\beta_{21}=L$. On the other hand $\nabla_x \phi(x,y) = \sum_{i=1}^m y_i \nabla f_i(x)$, and thus
+\begin{align*}
+& \|\sum_{i=1}^m y(i) (\nabla f_i(x) - \nabla f_i(x')) \|_{\cX}^* \leq \beta \|x-x'\|_{\cX} , \\
+& \|\sum_{i=1}^m (y(i)-y'(i)) \nabla f_i(x) \|_{\cX}^* \leq L\|y-y'\|_1 ,
+\end{align*}
+that is $\beta_{11} = \beta$ and $\beta_{12} = L$. Thus using SP-MP with some mirror map on $\cX$ and the negentropy on $\Delta_m$ (see the ``simplex setup" in Section \ref{sec:mdsetups}), one obtains an $\epsilon$-optimal point of $f(x) = \max_{1 \leq i \leq m} f_i(x)$ in $O\left(\frac{\beta R_{\cX}^2 + L R_{\cX} \sqrt{\log(m)}}{\epsilon} \right)$ iterations. Furthermore an iteration of SP-MP has a computational complexity of order of a step of mirror descent in $\cX$ on the function $x \mapsto \sum_{i=1}^m y(i) f_i(x)$ (plus $O(m)$ for the update in the $\cY$-space).
+
+Thus by using the structure of $f$ we were able to obtain a much better rate than black-box procedures (which would have required $\Omega(1/\epsilon^2)$ iterations as $f$ is potentially non-smooth).
+
+\subsubsection{Matrix games} \label{sec:spex2}
+Let $A \in \R^{n \times m}$, we denote $\|A\|_{\mathrm{max}}$ for the maximal entry (in absolute value) of $A$, and $A_i \in \R^n$ for the $i^{th}$ column of $A$. We consider the problem of computing a Nash equilibrium for the zero-sum game corresponding to the loss matrix $A$, that is we want to solve
+$$\min_{x \in \Delta_n} \max_{y \in \Delta_m} x^{\top} A y .$$
+Here we equip both $\Delta_n$ and $\Delta_m$ with $\|\cdot\|_1$. Let $\phi(x,y) = x^{\top} A y$. Using that $\nabla_x \phi(x,y) = Ay$ and $\nabla_y \phi(x,y) = A^{\top} x$ one immediately obtains $\beta_{11} = \beta_{22} = 0$. Furthermore since
+$$\|A(y - y') \|_{\infty} = \|\sum_{i=1}^m (y(i) - y'(i)) A_i \|_{\infty} \leq \|A\|_{\mathrm{max}} \|y - y'\|_1 ,$$
+one also has $\beta_{12} = \beta_{21} = \|A\|_{\mathrm{max}}$. Thus SP-MP with the negentropy on both $\Delta_n$ and $\Delta_m$ attains an $\epsilon$-optimal pair of mixed strategies with $O\left(\|A\|_{\mathrm{max}} \sqrt{\log(n) \log(m)} / \epsilon \right)$ iterations. Furthermore the computational complexity of a step of SP-MP is dominated by the matrix-vector multiplications which are $O(n m)$. Thus overall the complexity of getting an $\epsilon$-optimal Nash equilibrium with SP-MP is $O\left(\|A\|_{\mathrm{max}} n m \sqrt{\log(n) \log(m)} / \epsilon  \right)$.
+
+\subsubsection{Linear classification} \label{sec:spex3}
+Let $(\ell_i, A_i) \in \{-1,1\} \times \R^n$, $i \in [m]$, be a data set that one wishes to separate with a linear classifier. That is one is looking for $x \in \mB_{2,n}$ such that for all $i \in [m]$, $\mathrm{sign}(x^{\top} A_i) = \mathrm{sign}(\ell_i)$, or equivalently $\ell_i x^{\top} A_i > 0$. Clearly without loss of generality one can assume $\ell_i = 1$ for all $i \in [m]$ (simply replace $A_i$ by $\ell_i A_i$). Let $A \in \R^{n \times m}$ be the matrix where the $i^{th}$ column is $A_i$. The problem of finding $x$ with maximal margin can be written as
+\begin{equation} \label{eq:linearclassif}
+\max_{x \in \mB_{2,n}} \min_{1 \leq i \leq m} A_i^{\top} x = \max_{x \in \mB_{2,n}} \min_{y \in \Delta_m} x^{\top} A y .
+\end{equation}
+Assuming that $\|A_i\|_2 \leq B$, and using the calculations we did in Section \ref{sec:spex1}, it is clear that $\phi(x,y) = x^{\top} A y$ is $(0, B, 0, B)$-smooth with respect to $\|\cdot\|_2$ on $\mB_{2,n}$ and $\|\cdot\|_1$ on $\Delta_m$. This implies in particular that SP-MP with the Euclidean norm squared on $\mB_{2,n}$ and the negentropy on $\Delta_m$ will solve \eqref{eq:linearclassif} in $O(B \sqrt{\log(m)} / \epsilon)$ iterations. Again the cost of an iteration is dominated by the matrix-vector multiplications, which results in an overall complexity of $O(B n m \sqrt{\log(m)} / \epsilon)$ to find an $\epsilon$-optimal solution to \eqref{eq:linearclassif}.
+
+\section{Interior point methods} \label{sec:IPM}
+We describe here interior point methods (IPM), a class of algorithms fundamentally different from what we have seen so far. The first algorithm of this type was described in \cite{Kar84}, but the theory we shall present was developed in \cite{NN94}. We follow closely the presentation given in [Chapter 4, \cite{Nes04}]. Other useful references (in particular for the primal-dual IPM, which are the ones used in practice) include \cite{Ren01, Nem04b, NW06}.
+\newline
+
+IPM are designed to solve convex optimization problems of the form
+\begin{align*}
+& \mathrm{min.} \; c^{\top} x \\
+& \text{s.t.} \; x \in \cX ,
+\end{align*}
+with $c \in \R^n$, and $\cX \subset \R^n$ convex and compact. 
+%As usual we denote by $x^*$ the solution to the above optimization problem. 
+Note that, at this point, the linearity of the objective is without loss of generality as minimizing a convex function $f$ over $\cX$ is equivalent to minimizing a linear objective over the epigraph of $f$ (which is also a convex set). The structural assumption on $\cX$ that one makes in IPM is that there exists a {\em self-concordant barrier} for $\cX$ with an easily computable gradient and Hessian. The meaning of the previous sentence will be made precise in the next subsections. The importance of IPM stems from the fact that LPs and SDPs (see Section \ref{sec:structured}) satisfy this structural assumption.
+
+\subsection{The barrier method} \label{sec:barriermethod}
+We say that $F : \inte(\cX) \rightarrow \R$ is a {\em barrier} for $\cX$ if 
+$$F(x) \xrightarrow[x \to \partial \cX]{} +\infty .$$
+We will only consider strictly convex barriers. We extend the domain of definition of $F$ to $\R^n$ with $F(x) = +\infty$ for $x \not\in \inte(\cX)$. For $t \in \R_+$ let
+$$x^*(t) \in \argmin_{x \in \R^n} t c^{\top} x + F(x) .$$
+In the following we denote $F_t(x) := t c^{\top} x + F(x)$.
+In IPM the path $(x^*(t))_{t \in \R_+}$ is referred to as the {\em central path}. It seems clear that the central path eventually leads to the minimum $x^*$ of the objective function $c^{\top} x$ on $\cX$, precisely we will have
+$$x^*(t) \xrightarrow[t \to +\infty]{} x^* .$$
+The idea of the {\em barrier method} is to move along the central path by ``boosting" a fast locally convergent algorithm, which we denote for the moment by $\cA$, using the following scheme: Assume that one has computed $x^*(t)$, then one uses $\cA$ initialized at $x^*(t)$ to compute $x^*(t')$ for some $t'>t$. There is a clear tension for the choice of $t'$, on the one hand $t'$ should be large in order to make as much progress as possible on the central path, but on the other hand $x^*(t)$ needs to be close enough to $x^*(t')$ so that it is in the basin of fast convergence for $\cA$ when run on $F_{t'}$. 
+%In other words in the barrier method one moves along the central path by doing small steps with a basic algorithm $\cA$.
+
+IPM follows the above methodology with $\cA$ being {\em Newton's method}. Indeed as we will see in the next subsection, Newton's method has a quadratic convergence rate, in the sense that if initialized close enough to the optimum it attains an $\epsilon$-optimal point in $\log\log(1/\epsilon)$ iterations! Thus we now have a clear plan to make these ideas formal and analyze the iteration complexity of IPM:
+\begin{enumerate}
+\item First we need to describe precisely the region of fast convergence for Newton's method. This will lead us to define self-concordant functions, which are ``natural" functions for Newton's method.
+\item Then we need to evaluate precisely how much larger $t'$ can be compared to $t$, so that $x^*(t)$ is still in the region of fast convergence of Newton's method when optimizing the function $F_{t'}$ with $t'>t$. This will lead us to define $\nu$-self concordant barriers.
+\item How do we get close to the central path in the first place? Is it possible to compute $x^*(0) = \argmin_{x \in \R^n} F(x)$ (the so-called analytical center of $\mathcal{X}$)?
+\end{enumerate}
+
+\subsection{Traditional analysis of Newton's method} \label{sec:tradanalysisNM}
+We start by describing Newton's method together with its standard analysis showing the quadratic convergence rate when initialized close enough to the optimum. In this subsection we denote $\|\cdot\|$ for both the Euclidean norm on $\R^n$ and the operator norm on matrices (in particular $\|A x\| \leq \|A\| \cdot \|x\|$).
+
+Let $f: \R^n \rightarrow \R$ be a $C^2$ function. 
+%Newton's method is a simple iterative optimization scheme.
+Using a Taylor's expansion of $f$ around $x$ one obtains
+$$f(x+h) = f(x) + h^{\top} \nabla f(x) + \frac12 h^{\top} \nabla^2 f(x) h + o(\|h\|^2) .$$
+Thus, starting at $x$, in order to minimize $f$ it seems natural to move in the direction $h$ that minimizes 
+$$h^{\top} \nabla f(x) + \frac12 h^{\top} \nabla f^2(x) h .$$
+If $\nabla^2 f(x)$ is positive definite then the solution to this problem is given by $h = - [\nabla^2 f(x)]^{-1} \nabla f(x)$. Newton's method simply iterates this idea: starting at some point $x_0 \in \R^n$, it iterates for $k \geq 0$ the following equation:
+$$x_{k+1} = x_k  - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k) .$$
+While this method can have an arbitrarily bad behavior in general, if started close enough to a strict local minimum of $f$, it can have a very fast convergence:
+
+\begin{theorem}
+%[Local quadratic convergence of Newton's method] 
+\label{th:NM}
+Assume that $f$ has a Lipschitz Hessian, that is $\| \nabla^2 f(x) - \nabla^2 f(y) \| \leq M \|x - y\|$. Let $x^*$ be local minimum of $f$ with strictly positive Hessian, that is $\nabla^2 f(x^*) \succeq \mu \mI_n$, $\mu > 0$. Suppose that the initial starting point $x_0$ of Newton's method is such that
+$$\|x_0 - x^*\| \leq \frac{\mu}{2 M} .$$
+Then Newton's method is well-defined and converges to $x^*$ at a quadratic rate:
+$$\|x_{k+1} - x^*\| \leq \frac{M}{\mu} \|x_k - x^*\|^2.$$
+\end{theorem}
+
+\begin{proof}
+We use the following simple formula, for $x, h \in \R^n$,
+$$\int_0^1 \nabla^2 f(x + s h) \ h \ ds = \nabla f(x+h) - \nabla f(x) .$$
+Now note that $\nabla f(x^*) = 0$, and thus with the above formula one obtains
+$$\nabla f(x_k) = \int_0^1 \nabla^2 f(x^* + s (x_k - x^*)) \ (x_k - x^*) \ ds ,$$
+which allows us to write:
+\begin{align*}
+& x_{k+1} - x^* \\
+& = x_k - x^* - [\nabla^2 f(x_k)]^{-1} \nabla f(x_k) \\
+& = x_k - x^* - [\nabla^2 f(x_k)]^{-1} \int_0^1 \nabla^2 f(x^* + s (x_k - x^*)) \ (x_k - x^*) \ ds \\
+& = [\nabla^2 f(x_k)]^{-1} \int_0^1 [\nabla^2 f (x_k) - \nabla^2 f(x^* + s (x_k - x^*)) ] \ (x_k - x^*) \ ds .
+\end{align*}
+In particular one has
+\begin{align*}
+& \|x_{k+1} - x^*\| \\
+& \leq \|[\nabla^2 f(x_k)]^{-1}\| \\
+& \times \left( \int_0^1 \| \nabla^2 f (x_k) - \nabla^2 f(x^* + s (x_k - x^*)) \| \ ds \right) \|x_k - x^* \|.
+\end{align*}
+Using the Lipschitz property of the Hessian one immediately obtains that 
+$$\left( \int_0^1 \| \nabla^2 f (x_k) - \nabla^2 f(x^* + s (x_k - x^*)) \| \ ds \right) \leq \frac{M}{2} \|x_k - x^*\| .$$
+Using again the Lipschitz property of the Hessian (note that $\|A - B\| \leq s \Leftrightarrow s \mI_n \succeq A - B \succeq - s \mI_n$), the hypothesis on $x^*$, and an induction hypothesis that $\|x_k - x^*\| \leq \frac{\mu}{2M}$, one has
+$$\nabla^2 f(x_k) \succeq \nabla^2 f(x^*) - M \|x_k - x^*\| \mI_n \succeq (\mu - M \|x_k - x^*\|) \mI_n \succeq \frac{\mu}{2} \mI_n ,$$
+which concludes the proof.
+\end{proof}
+
+\subsection{Self-concordant functions}
+Before giving the definition of self-concordant functions let us try to get some insight into the ``geometry" of Newton's method. Let $A$ be a $n \times n$ non-singular matrix. We look at a Newton step on the functions $f: x \mapsto f(x)$ and $\phi: y \mapsto f(A^{-1} y)$, starting respectively from $x$ and $y= A x$, that is:
+$$x^+ = x  - [\nabla^2 f(x)]^{-1} \nabla f(x) , \; \text{and} \; y^+ = y  - [\nabla^2 \phi(y)]^{-1} \nabla \phi(y) .$$
+By using the following simple formulas
+$$\nabla (x \mapsto f(A x) ) =A^{\top} \nabla f(A x) , \; \text{and} \; \nabla^2 (x \mapsto f(A x) ) =A^{\top} \nabla^2 f(A x) A .$$
+it is easy to show that
+$$y^+ = A x^+ .$$
+In other words Newton's method will follow the same trajectory in the ``$x$-space" and in the ``$y$-space" (the image through $A$ of the $x$-space), that is Newton's method is {\em affine invariant}. Observe that this property is not shared by the methods described in Chapter \ref{dimfree} (except for the conditional gradient descent).
+
+The affine invariance of Newton's method casts some concerns on the assumptions of the analysis in Section \ref{sec:tradanalysisNM}. Indeed the assumptions are all in terms of the canonical inner product in $\R^n$. However we just showed that the method itself does not depend on the choice of the inner product (again this is not true for first order methods). Thus one would like to derive a result similar to Theorem \ref{th:NM} without any reference to a prespecified inner product. The idea of self-concordance is to modify the Lipschitz assumption on the Hessian to achieve this goal.
+
+Assume from now on that $f$ is $C^3$, and let $\nabla^3 f(x) : \R^n \times \R^n \times \R^n \rightarrow \R$ be the third order differential operator. The Lipschitz assumption on the Hessian in Theorem \ref{th:NM} can be written as:
+$$\nabla^3 f(x) [h,h,h] \leq M \|h\|_2^3 .$$
+The issue is that this inequality depends on the choice of an inner product. More importantly it is easy to see that a convex function which goes to infinity on a compact set simply cannot satisfy the above inequality. A natural idea to try fix these issues is to replace the Euclidean metric on the right hand side by the metric given by the function $f$ itself at $x$, that is:
+$$\|h\|_x = \sqrt{ h^{\top} \nabla^2 f(x) h }.$$
+Observe that to be clear one should rather use the notation $\|\cdot\|_{x, f}$, but since $f$ will always be clear from the context we stick to $\|\cdot\|_x$.
+\begin{definition}
+Let $\mathcal{X}$ be a convex set with non-empty interior, and $f$ a $C^3$ convex function defined on $\inte(\mathcal{X})$. Then $f$ is self-concordant (with constant $M$) if for all $x \in \inte(\mathcal{X}), h \in \R^n$,
+$$\nabla^3 f(x) [h,h,h] \leq M \|h\|_x^3 .$$
+We say that $f$ is standard self-concordant if $f$ is self-concordant with constant $M=2$.
+\end{definition}
+
+An easy consequence of the definition is that a self-concordant function is a barrier for the set $\mathcal{X}$, see [Theorem 4.1.4, \cite{Nes04}]. The main example to keep in mind of a standard self-concordant function is $f(x) = - \log x$ for $x > 0$. The next definition will be key in order to describe the region of quadratic convergence for Newton's method on self-concordant functions. 
+
+\begin{definition}
+Let $f$ be a standard self-concordant function on $\mathcal{X}$. For $x \in \mathrm{int}(\mathcal{X})$, we say that $\lambda_f(x) = \|\nabla f(x)\|_x^*$ is the {\em Newton decrement} of $f$ at $x$.
+\end{definition}
+An important inequality is that for $x$ such that $\lambda_f(x) < 1$, and $x^* = \argmin f(x)$, one has
+\begin{equation} \label{eq:trucipm3}
+\|x - x^*\|_x \leq \frac{\lambda_f(x)}{1 - \lambda_f(x)} ,
+\end{equation}
+see [Equation 4.1.18, \cite{Nes04}]. We state the next theorem without a proof, see also [Theorem 4.1.14, \cite{Nes04}].
+\begin{theorem} \label{th:NMsc}
+Let $f$ be a standard self-concordant function on $\mathcal{X}$, and $x \in \mathrm{int}(\mathcal{X})$ such that $\lambda_f(x) \leq 1/4$, then
+$$\lambda_f\Big(x - [\nabla^2 f(x)]^{-1} \nabla f(x)\Big) \leq 2 \lambda_f(x)^2 .$$
+\end{theorem}
+In other words the above theorem states that, if initialized at a point $x_0$ such that $\lambda_f(x_0) \leq 1/4$, then Newton's iterates satisfy $\lambda_f(x_{k+1}) \leq 2 \lambda_f(x_k)^2$. Thus, Newton's region of quadratic convergence for self-concordant functions can be described as a ``Newton decrement ball" $\{x : \lambda_f(x) \leq 1/4\}$. In particular by taking the barrier to be a self-concordant function we have now resolved Step (1) of the plan described in Section \ref{sec:barriermethod}. 
+
+\subsection{$\nu$-self-concordant barriers}
+We deal here with Step (2) of the plan described in Section \ref{sec:barriermethod}. Given Theorem \ref{th:NMsc} we want $t'$ to be as large as possible and such that
+%Let us go back to our central path idea. Assume that we have computed $x^*(t) = \argmin_{x \in \R^n} F_t(x)$, where $F_t(x) = t c^{\top} x + F(x)$ and $F$ is a standard self-concordant function on $\mathcal{X}$. We want to use Newton's method to compute $x^*(t')$, starting at $x_0 = x^*(t)$. Thus, using the analysis of the previous section, we need to ensure that
+\begin{equation} \label{eq:trucipm1}
+\lambda_{F_{t'}}(x^*(t) ) \leq 1/4 .
+\end{equation}
+Since the Hessian of $F_{t'}$ is the Hessian of $F$, one has
+$$\lambda_{F_{t'}}(x^*(t) ) = \|t' c + \nabla F(x^*(t)) \|_{x^*(t)}^* .$$
+Observe that, by first order optimality, one has 
+%\begin{equation} \label{eq:trucipm4}
+$t c + \nabla F(x^*(t))  = 0,$
+%\end{equation} 
+which yields
+%$$\lambda_{F_{t'}}(x^*(t) ) = \left(\frac{t'}{t} - 1\right) \|\nabla F(x^*(t)) \|^*_{x^*(t)} .$$
+\begin{equation} \label{eq:trucipm11}
+\lambda_{F_{t'}}(x^*(t) ) = (t'-t) \|c\|^*_{x^*(t)} .
+\end{equation}
+Thus taking 
+\begin{equation} \label{eq:trucipm2}
+t' = t + \frac{1}{4 \|c\|^*_{x^*(t)}}
+\end{equation} 
+immediately yields \eqref{eq:trucipm1}. In particular with the value of $t'$ given in \eqref{eq:trucipm2} the Newton's method on $F_{t'}$ initialized at $x^*(t)$ will converge quadratically fast to $x^*(t')$.
+
+It remains to verify that by iterating \eqref{eq:trucipm2} one obtains a sequence diverging to infinity, and to estimate the rate of growth. Thus one needs to control $\|c\|^*_{x^*(t)} = \frac1{t} \|\nabla F(x^*(t))\|_{x^*(t)}^*$. Luckily there is a natural class of functions for which one can control $\|\nabla F(x)\|_x^*$ uniformly over $x$. This is the set of functions such that
+\begin{equation} \label{eq:nu}
+\nabla^2 F(x) \succeq \frac1{\nu} \nabla F(x) [\nabla F(x) ]^{\top} .
+\end{equation}
+Indeed in that case one has:
+\begin{eqnarray*}
+\|\nabla F(x)\|_x^* & = & \sup_{h : h^{\top} \nabla F^2(x) h \leq 1} \nabla F(x)^{\top} h \\
+& \leq & \sup_{h : h^{\top} \left( \frac1{\nu} \nabla F(x) [\nabla F(x) ]^{\top} \right) h \leq 1} \nabla F(x)^{\top} h \\
+& = & \sqrt{\nu} .
+\end{eqnarray*}
+Thus a safe choice to increase the penalization parameter is $t' = \left(1 + \frac1{4\sqrt{\nu}}\right) t$. Note that the condition \eqref{eq:nu} can also be written as the fact that the function $F$ is $\frac1{\nu}$-exp-concave, that is $x \mapsto \exp(- \frac1{\nu} F(x))$ is concave. We arrive at the following definition.
+
+\begin{definition}
+$F$ is a $\nu$-self-concordant barrier if it is a standard self-concordant function, and it is $\frac1{\nu}$-exp-concave.
+\end{definition}
+Again the canonical example is the logarithmic function, $x \mapsto - \log x$, which is a $1$-self-concordant barrier for the set $\R_{+}$. We state the next theorem without a proof (see \cite{BE14} for more on this result).
+
+\begin{theorem}
+Let $\mathcal{X} \subset \R^n$ be a closed convex set with non-empty interior. There exists $F$ which is a $(c \ n)$-self-concordant barrier for $\mathcal{X}$ (where $c$ is some universal constant).
+\end{theorem}
+A key property of $\nu$-self-concordant barriers is the following inequality:
+\begin{equation} \label{eq:key}
+c^{\top} x^*(t) - \min_{x \in \mathcal{X}} c^{\top} x \leq \frac{\nu}{t} ,
+\end{equation}
+see [Equation (4.2.17), \cite{Nes04}]. More generally using \eqref{eq:key} together with \eqref{eq:trucipm3} one obtains
+\begin{eqnarray}
+c^{\top} y- \min_{x \in \mathcal{X}} c^{\top} x & \leq & \frac{\nu}{t} + c^{\top} (y - x^*(t)) \notag \\
+& = & \frac{\nu}{t} + \frac{1}{t} (\nabla F_t(y) - \nabla F(y))^{\top} (y - x^*(t)) \notag \\ 
+& \leq & \frac{\nu}{t} + \frac{1}{t} \|\nabla F_t(y) - \nabla F(y)\|_y^* \cdot \|y - x^*(t)\|_y \notag \\
+& \leq & \frac{\nu}{t} + \frac{1}{t} (\lambda_{F_t}(y) + \sqrt{\nu})\frac{\lambda_{F_t} (y)}{1 - \lambda_{F_t}(y)} \label{eq:trucipm4}
+\end{eqnarray}
+In the next section we describe a precise algorithm based on the ideas we developed above. As we will see one cannot ensure to be exactly on the central path, and thus it is useful to generalize the identity \eqref{eq:trucipm11} for a point $x$ close to the central path. We do this as follows:
+\begin{eqnarray}
+\lambda_{F_{t'}}(x) & = & \|t' c + \nabla F(x)\|_x^* \notag \\
+& = &  \|(t' / t) (t c + \nabla F(x)) + (1- t'/t) \nabla F(x)\|_x^* \notag \\
+& \leq & \frac{t'}{t} \lambda_{F_t}(x) + \left(\frac{t'}{t} - 1\right) \sqrt{\nu} .\label{eq:trucipm12}
+\end{eqnarray}
+
+\subsection{Path-following scheme}
+We can now formally describe and analyze the most basic IPM called the {\em path-following scheme}. Let $F$ be $\nu$-self-concordant barrier for $\cX$. Assume that one can find $x_0$ such that $\lambda_{F_{t_0}}(x_0) \leq 1/4$ for some small value $t_0 >0$ (we describe a method to find $x_0$ at the end of this subsection).
+%Let $x_0$ be the analytical center of $\mathcal{X}$, that is $x_0$ is the minimizer of $F$. Let $t_0 = 0$. 
+Then for $k \geq 0$, let
+\begin{eqnarray*}
+& & t_{k+1} = \left(1 + \frac1{13\sqrt{\nu}}\right) t_k ,\\
+& & x_{k+1} = x_k - [\nabla^2 F(x_k)]^{-1} (t_{k+1} c + \nabla F(x_k) ) .
+\end{eqnarray*}
+The next theorem shows that after $O\left( \sqrt{\nu} \log \frac{\nu}{t_0 \epsilon} \right)$ iterations of the path-following scheme one obtains an $\epsilon$-optimal point.
+\begin{theorem}
+The path-following scheme described above satisfies
+$$c^{\top} x_k - \min_{x \in \mathcal{X}} c^{\top} x \leq \frac{2 \nu}{t_0} \exp\left( - \frac{k}{1+13\sqrt{\nu}} \right) .$$
+\end{theorem}
+\begin{proof}
+We show that the iterates $(x_k)_{k \geq 0}$ remain close to the central path $(x^*(t_k))_{k \geq 0}$. Precisely one can easily prove by induction that 
+$$\lambda_{F_{t_k}}(x_k) \leq 1/4 .$$
+Indeed using Theorem \ref{th:NMsc} and equation \eqref{eq:trucipm12} one immediately obtains
+\begin{eqnarray*}
+\lambda_{F_{t_{k+1}}}(x_{k+1}) & \leq & 2 \lambda_{F_{t_{k+1}}}(x_k)^2 \\
+& \leq & 2 \left(\frac{t_{k+1}}{t_k} \lambda_{F_{t_k}}(x_k) + \left(\frac{t_{k+1}}{t_k} - 1\right) \sqrt{\nu}\right)^2  \\
+& \leq & 1/4 ,
+\end{eqnarray*}
+where we used in the last inequality that $t_{k+1} / t_k = 1 + \frac1{13\sqrt{\nu}}$ and $\nu \geq 1$.
+
+Thus using \eqref{eq:trucipm4} one obtains
+$$c^{\top} x_k - \min_{x \in \mathcal{X}} c^{\top} x \leq \frac{\nu + \sqrt{\nu} / 3 + 1/12}{t_k} \leq \frac{2 \nu}{t_k} .$$
+Observe that $t_{k} = \left(1 + \frac1{13\sqrt{\nu}}\right)^{k} t_0$, which finally yields
+$$c^{\top} x_k - \min_{x \in \mathcal{X}} c^{\top} x \leq \frac{2 \nu}{t_0} \left(1 + \frac1{13\sqrt{\nu}}\right)^{- k}.$$
+\end{proof}
+
+At this point we still need to explain how one can get close to an intial point $x^*(t_0)$ of the central path. This can be done with the following rather clever trick. Assume that one has some point $y_0 \in \cX$. The observation is that $y_0$ is on the central path at $t=1$ for the problem where $c$ is replaced by $- \nabla F(y_0)$. Now instead of following this central path as $t \to +\infty$, one follows it as $t \to 0$. Indeed for $t$ small enough the central paths for $c$ and for $- \nabla F(y_0)$ will be very close. Thus we iterate the following equations, starting with $t_0' = 1$,
+\begin{eqnarray*}
+& & t_{k+1}' = \left(1 - \frac1{13\sqrt{\nu}}\right) t_k' ,\\
+& & y_{k+1} = y_k - [\nabla^2 F(y_k)]^{-1} (- t_{k+1}' \nabla F(y_0) + \nabla F(y_k) ) .
+\end{eqnarray*}
+A straightforward analysis shows that for $k = O(\sqrt{\nu} \log \nu)$, which corresponds to $t_k'=1/\nu^{O(1)}$, one obtains a point $y_k$ such that $\lambda_{F_{t_k'}}(y_k) \leq 1/4$. In other words one can initialize the path-following scheme with $t_0 = t_k'$ and $x_0 = y_k$.
+
+\subsection{IPMs for LPs and SDPs}
+We have seen that, roughly, the complexity of interior point methods with a $\nu$-self-concordant barrier is $O\left(M \sqrt{\nu} \log \frac{\nu}{\epsilon} \right)$, where $M$ is the complexity of computing a Newton direction (which can be done by computing and inverting the Hessian of the barrier). Thus the efficiency of the method is directly related to the {\em form} of the self-concordant barrier that one can construct for $\mathcal{X}$. It turns out that for LPs and SDPs one has particularly nice self-concordant barriers. Indeed one can show that $F(x) = - \sum_{i=1}^n \log x_i$ is an $n$-self-concordant barrier on $\R_{+}^n$, and $F(x) = - \log \mathrm{det}(X)$ is an $n$-self-concordant barrier on $\mathbb{S}_{+}^n$. See also \cite{LS13} for a recent improvement of the basic logarithmic barrier for LPs.
+
+There is one important issue that we overlooked so far. In most interesting cases LPs and SDPs come with {\em equality constraints}, resulting in a set of constraints $\cX$ with empty interior. From a theoretical point of view there is an easy fix, which is to reparametrize the problem as to enforce the variables to live in the subspace spanned by $\cX$. This modification also has algorithmic consequences, as the evaluation of the Newton direction will now be different. In fact, rather than doing a reparametrization, one can simply search for Newton directions such that the updated point will stay in $\cX$. In other words one has now to solve a convex quadratic optimization problem under linear equality constraints. Luckily using Lagrange multipliers one can find a closed form solution to this problem, and we refer to previous references for more details.

@@ -87,6 +87,21 @@ def parse_chunks(tex_text: str, chapter_num: int, chapter_title: str) -> list[di
     current_section = 0
     current_section_title = ""
 
+    # Capture content before the first \section{} (e.g. chapter-level definitions)
+    preamble_body = tex_text[:points[0][0]].strip() if points else tex_text.strip()
+    if preamble_body:
+        chunks.append({
+            "chapter": chapter_num,
+            "chapter_title": chapter_title,
+            "section": 0,
+            "section_title": chapter_title,
+            "subsection": None,
+            "subsection_title": None,
+            "section_id": f"{chapter_num}.0",
+            "tex_label": "",
+            "body_tex": preamble_body,
+        })
+
     for i, (pos, kind, title, label) in enumerate(points):
         end = points[i + 1][0] if i + 1 < len(points) else len(tex_text)
         body = tex_text[pos:end].strip()
@@ -143,10 +158,11 @@ def detect_theorems_tex(body_tex: str, chapter_num: int, counter: list[int]) -> 
 
     Returns list of {id, label, tex_label}.
     """
+    _cite_re = re.compile(r'\\cite\{[^}]*\}')
     results = []
     for m in _ENV_BEGIN_RE.finditer(body_tex):
         env_type = m.group(1).capitalize()
-        name = (m.group(2) or "").strip()
+        name = _cite_re.sub("", (m.group(2) or "")).strip()
         tex_label = m.group(3)
 
         # If \label not inline, look for it in the next 200 chars
@@ -271,7 +287,8 @@ def write_section_files(chunks: list[dict], paper_dir: Path, book: str) -> list[
         sub = chunk["subsection"]
         if sub is None:
             slug = _title_to_slug(chunk["section_title"])
-            filename = f"{chunk['chapter']:02d}_{chunk['section']:02d}_{slug}.md"
+            sec = chunk["section"]
+            filename = f"{chunk['chapter']:02d}_{sec:02d}_{slug}.md"
         else:
             slug = _title_to_slug(chunk["subsection_title"] or chunk["section_title"])
             filename = (f"{chunk['chapter']:02d}_{chunk['section']:02d}"
@@ -326,23 +343,26 @@ def write_index(paper_dir: Path) -> Path:
         except yaml.YAMLError:
             continue
         section_id = fm.get("section_id", "")
-        sub_title = fm.get("subsection_title") or fm.get("section_title", "")
+        section_title = fm.get("subsection_title") or fm.get("section_title", "")
+        # Build theorem id → label map from the theorems list
+        thm_label_map = {t["id"]: t.get("label", "") for t in (fm.get("theorems") or [])}
         for lf in (fm.get("lean_files") or []):
             rows.append({
                 "id": lf["id"],
+                "name": thm_label_map.get(lf["id"], ""),
                 "section_id": section_id,
-                "subsection_title": sub_title,
+                "section_title": section_title,
                 "path": lf.get("path", ""),
                 "status": lf.get("status", "pending"),
             })
 
     header = (
         "# Theorem & Lemma Index\n\n"
-        "| ID | Section | Title | Lean file | Status |\n"
-        "|----|---------|-------|-----------|--------|\n"
+        "| ID | Name | Section | Section Title | Lean file | Status |\n"
+        "|----|------|---------|---------------|-----------|--------|\n"
     )
     rows_text = "".join(
-        f"| {r['id']} | {r['section_id']} | {r['subsection_title']} "
+        f"| {r['id']} | {r['name']} | {r['section_id']} | {r['section_title']} "
         f"| {r['path']} | {r['status']} |\n"
         for r in rows
     )

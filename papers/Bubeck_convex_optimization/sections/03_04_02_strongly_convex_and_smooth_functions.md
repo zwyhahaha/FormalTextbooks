@@ -9,24 +9,24 @@ subsection_title: Strongly convex and smooth functions
 section_id: 3.4.2
 tex_label: ''
 theorems:
-- id: Theorem 3.9
+- id: Theorem 3.10
   label: ''
   tex_label: th:gdssc
-- id: Lemma 3.10
+- id: Lemma 3.11
   label: ''
   tex_label: lem:coercive2
-- id: Theorem 3.11
+- id: Theorem 3.12
   label: ''
   tex_label: ''
 lean_files:
-- id: Theorem 3.9
-  path: proofs/Bubeck_convex_optimization/Theorem39.lean
+- id: Theorem 3.10
+  path: proofs/Bubeck_convex_optimization/Theorem310.lean
   status: pending
-- id: Lemma 3.10
-  path: proofs/Bubeck_convex_optimization/Lemma310.lean
+- id: Lemma 3.11
+  path: proofs/Bubeck_convex_optimization/Lemma311.lean
   status: pending
-- id: Theorem 3.11
-  path: proofs/Bubeck_convex_optimization/Theorem311.lean
+- id: Theorem 3.12
+  path: proofs/Bubeck_convex_optimization/Theorem312.lean
   status: pending
 ---
 

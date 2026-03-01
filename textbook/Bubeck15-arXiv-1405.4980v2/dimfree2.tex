@@ -1,0 +1,817 @@
+We investigate here variants of the {\em gradient descent} scheme. This iterative algorithm, which can be traced back to \cite{Cau47}, is the simplest strategy to minimize a differentiable function $f$ on $\R^n$. Starting at some initial point $x_1 \in \R^n$ it iterates the following equation:
+\begin{equation} \label{eq:Cau47}
+x_{t+1} = x_t - \eta \nabla f(x_t) ,
+\end{equation}
+where $\eta > 0$ is a fixed step-size parameter. The rationale behind \eqref{eq:Cau47} is to make a small step in the direction that minimizes the local first order Taylor approximation of $f$ (also known as the steepest descent direction). 
+
+As we shall see, methods of the type \eqref{eq:Cau47} can obtain an oracle complexity {\em independent of the dimension}\footnote{Of course the computational complexity remains at least linear in the dimension since one needs to manipulate gradients.}. This feature makes them particularly attractive for optimization in very high dimension.
+
+Apart from Section \ref{sec:FW}, in this chapter $\|\cdot\|$ denotes the Euclidean norm. The set of constraints $\cX \subset \R^n$ is assumed to be compact and convex. 
+%For a convex function $f$ we denote by $x^*$ its minimizer either on $\cX$ or $\R^n$ (this will be clear from the context). We also denote $x(i)$ for the $i^{th}$ coordinate of a vector $x \in \R^n$. 
+We define the projection operator $\Pi_{\cX}$ on $\cX$ by
+$$\Pi_{\cX}(x) = \argmin_{y \in \mathcal{X}} \|x - y\| .$$
+The following lemma will prove to be useful in our study. It is an easy corollary of Proposition \ref{prop:firstorder}, see also Figure \ref{fig:pythagore}.
+
+\begin{lemma} \label{lem:todonow}
+Let $x \in \cX$ and $y \in \R^n$, then
+$$(\Pi_{\cX}(y) - x)^{\top} (\Pi_{\cX}(y) - y) \leq 0 ,$$
+which also implies $\|\Pi_{\cX}(y) - x\|^2 + \|y - \Pi_{\cX}(y)\|^2 \leq \|y - x\|^2$.
+\end{lemma}
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[scale=4]
+\clip (0.4,-0.4) rectangle (-1.2,1.2);
+\draw[rotate=30, very thick] (0,0) ellipse (0.5 and 0.7);
+\node [tokens=1] (noeud1) at (-0.45,-0.1) [label=right:{$x$}] {};
+\node [tokens=1] (noeud2) at (-0.6, 0.8) [label=above left:{$y$}] {};
+\draw[<->, thick] (noeud1) -- (noeud2) node[midway, below left] {$\|y - x \|$};
+\node [tokens=1] (noeud3) at (-60:-0.7) [label=below right:{$\Pi_{\cX}(y)$}] {};
+\draw[<->, thick] (noeud2) -- (noeud3) node[midway, above right] {$\|y - \Pi_{\cX}(y) \|$};
+\draw[<->, thick] (noeud1) -- (noeud3) node[midway, right] {$\|\Pi_{\cX}(y) - x\|$};
+\node at (0.15,-0.2) {$\cX$};
+\end{tikzpicture}
+\end{center}
+\caption{Illustration of Lemma \ref{lem:todonow}.}
+\label{fig:pythagore}
+\end{figure}
+
+Unless specified otherwise all the proofs in this chapter are taken from \cite{Nes04} (with slight simplification in some cases).
+
+\section{Projected subgradient descent for Lipschitz functions} \label{sec:psgd}
+In this section we assume that $\cX$ is contained in an Euclidean ball centered at $x_1 \in \cX$ and of radius $R$. Furthermore we assume that $f$ is such that for any $x \in \cX$ and any $g \in \partial f(x)$ (we assume $\partial f(x) \neq \emptyset$), one has $\|g\| \leq L$. Note that by the subgradient inequality and Cauchy-Schwarz this implies that $f$ is $L$-Lipschitz on $\cX$, that is $|f(x) - f(y)| \leq L \|x-y\|$. 
+
+In this context we make two modifications to the basic gradient descent \eqref{eq:Cau47}. First, obviously, we replace the gradient $\nabla f(x)$ (which may not exist) by a subgradient $g \in \partial f(x)$. Secondly, and more importantly, we make sure that the updated point lies in $\cX$ by projecting back (if necessary) onto it. This gives the {\em projected subgradient descent} algorithm\footnote{In the optimization literature the term ``descent" is reserved for methods such that $f(x_{t+1}) \leq f(x_t)$. In that sense the projected subgradient descent is not a descent method.} which iterates the following equations for $t \geq 1$:
+\begin{align}
+& y_{t+1} = x_t - \eta g_t , \ \text{where} \ g_t \in \partial f(x_t) , \label{eq:PGD1}\\
+& x_{t+1} = \Pi_{\cX}(y_{t+1}) . \label{eq:PGD2}
+\end{align}
+This procedure is illustrated in Figure \ref{fig:pgd}. We prove now a rate of convergence for this method under the above assumptions.
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[scale=3]
+\draw[rotate=30, very thick] (0,0) ellipse (0.5 and 0.7);
+\node [tokens=1] (noeud1) at (-0.25,0.1) [label=below right:{$x_t$}] {};
+\node [tokens=1] (noeud2) at (-0.8, 0.9) [label=above left:{$y_{t+1}$}] {};
+\draw[->, thick] (noeud1) -- (noeud2) node[midway, left] {\begin{tabular}{c} \\ gradient step \\ \eqref{eq:PGD1} \end{tabular}};
+%node[midway, below left] {$ - \eta \nabla \ell(a_t, z_t)$};
+\node [tokens=1] (noeud3) at (-60:-0.7) [label=below right:{$x_{t+1}$}] {};
+\draw[->, thick] (noeud2) -- (noeud3) node[midway, right] {projection \eqref{eq:PGD2}};
+\node at (0.3,-0.4) {$\cX$};
+\end{tikzpicture}
+\end{center}
+\caption{Illustration of the projected subgradient descent method.}
+\label{fig:pgd}
+\end{figure}
+
+\begin{theorem} \label{th:pgd}
+The projected subgradient descent method with $\eta = \frac{R}{L \sqrt{t}}$ satisfies 
+%for $\bar{x}_t \in \left\{ \frac{1}{t} \sum_{s=1}^t x_s ; \argmin_{1 \leq s \leq t} f(x_s) \right\}$,
+$$f\left(\frac{1}{t} \sum_{s=1}^t x_s\right) - f(x^*) \leq \frac{R L}{\sqrt{t}} .$$
+\end{theorem}
+
+%We now turn to the proof of Theorem \ref{th:pgd}
+
+\begin{proof}
+Using the definition of subgradients, the definition of the method, and the elementary identity $2 a^{\top} b = \|a\|^2 + \|b\|^2 - \|a-b\|^2$, one obtains
+\begin{eqnarray*}
+f(x_s) - f(x^*) & \leq & g_s^{\top} (x_s - x^*) \\
+& = & \frac{1}{\eta} (x_s - y_{s+1})^{\top} (x_s - x^*) \\
+& = & \frac{1}{2 \eta} \left(\|x_s - x^*\|^2 + \|x_s - y_{s+1}\|^2 - \|y_{s+1} - x^*\|^2\right) \\
+& = & \frac{1}{2 \eta} \left(\|x_s - x^*\|^2 - \|y_{s+1} - x^*\|^2\right) + \frac{\eta}{2} \|g_s\|^2.
+\end{eqnarray*}
+Now note that $\|g_s\| \leq L$, and furthermore by Lemma \ref{lem:todonow}
+%the first order optimality condition (see Proposition \ref{prop:firstorder}) one can easily see that 
+%\begin{equation} \label{eq:pythagore}
+$$\|y_{s+1} - x^*\| \geq \|x_{s+1} - x^*\| .$$
+%\end{equation} 
+Summing the resulting inequality over $s$, and using that $\|x_1 - x^*\| \leq R$ yield
+$$\sum_{s=1}^t \left( f(x_s) - f(x^*) \right) \leq \frac{R^2}{2 \eta} + \frac{\eta L^2 t}{2} .$$
+Plugging in the value of $\eta$ directly gives the statement (recall that by convexity $f((1/t) \sum_{s=1}^t x_s) \leq \frac1{t} \sum_{s=1}^t f(x_s)$).
+\end{proof}
+
+We will show in Section \ref{sec:chap3LB} that the rate given in Theorem \ref{th:pgd} is unimprovable from a black-box perspective. Thus to reach an $\epsilon$-optimal point one needs $\Theta(1/\epsilon^2)$ calls to the oracle. In some sense this is an astonishing result as this complexity is independent\footnote{Observe however that the quantities $R$ and $L$ may dependent on the dimension, see Chapter \ref{mirror} for more on this.} of the ambient dimension $n$. On the other hand this is also quite disappointing compared to the scaling in $\log(1/\epsilon)$ of the center of gravity and ellipsoid method of Chapter \ref{finitedim}. To put it differently with gradient descent one could hope to reach a reasonable accuracy in very high dimension, while with the ellipsoid method one can reach very high accuracy in reasonably small dimension. A major task in the following sections will be to explore more restrictive assumptions on the function to be optimized in order to have the best of both worlds, that is an oracle complexity independent of the dimension and with a scaling in $\log(1/\epsilon)$.
+
+The computational bottleneck of the projected subgradient descent is often the projection step \eqref{eq:PGD2} which is a convex optimization problem by itself. In some cases this problem may admit an analytical solution (think of $\cX$ being an Euclidean ball), or an easy and fast combinatorial algorithm to solve it (this is the case for $\cX$ being an $\ell_1$-ball, see \cite{MP89}). We will see in Section \ref{sec:FW} a projection-free algorithm which operates under an extra assumption of smoothness on the function to be optimized.
+
+Finally we observe that the step-size recommended by Theorem \ref{th:pgd} depends on the number of iterations to be performed. In practice this may be an undesirable feature. However using a time-varying step size of the form $\eta_s = \frac{R}{L \sqrt{s}}$ one can prove the same rate up to a $\log t$ factor. In any case these step sizes are very small, which is the reason for the slow convergence. In the next section we will see that by assuming {\em smoothness} in the function $f$ one can afford to be much more aggressive. Indeed in this case, as one approaches the optimum the size of the gradients themselves will go to $0$, resulting in a sort of ``auto-tuning" of the step sizes which does not happen for an arbitrary convex function.
+
+\section{Gradient descent for smooth functions} \label{sec:gdsmooth}
+We say that a continuously differentiable function $f$ is $\beta$-smooth if the gradient $\nabla f$ is $\beta$-Lipschitz, that is 
+$$\|\nabla f(x) - \nabla f(y) \| \leq \beta \|x-y\| .$$
+Note that if $f$ is twice differentiable then this is equivalent to the eigenvalues of the Hessians being smaller than $\beta$.
+In this section we explore potential improvements in the rate of convergence under such a smoothness assumption.
+In order to avoid technicalities we consider first the unconstrained situation, where $f$ is a convex and $\beta$-smooth function on $\R^n$. 
+The next theorem shows that {\em gradient descent}, which iterates $x_{t+1} = x_t - \eta \nabla f(x_t)$, attains a much faster rate in this situation than in the non-smooth case of the previous section.
+
+\begin{theorem} \label{th:gdsmooth}
+%Let $f$ be convex and $\beta$-smooth on $\R^n$, and such that there exists $x^* \in \R^n$ with $f(x^*) = \min_{x \in \R^n} f(x)$.
+Let $f$ be convex and $\beta$-smooth on $\R^n$. 
+Then gradient descent with $\eta = \frac{1}{\beta}$ satisfies
+$$f(x_t) - f(x^*) \leq \frac{2 \beta \|x_1 - x^*\|^2}{t-1} .$$
+\end{theorem}
+
+Before embarking on the proof we state a few properties of smooth convex functions.
+\begin{lemma} \label{lem:sand}
+Let $f$ be a $\beta$-smooth function on $\R^n$. Then for any $x, y \in \R^n$, one has
+$$|f(x) - f(y) - \nabla f(y)^{\top} (x - y)| \leq \frac{\beta}{2} \|x - y\|^2 .$$
+\end{lemma}
+
+\begin{proof}
+We represent $f(x) - f(y)$ as an integral, apply Cauchy-Schwarz and then $\beta$-smoothness:
+\begin{align*}
+& |f(x) - f(y) - \nabla f(y)^{\top} (x - y)| \\
+& = \left|\int_0^1 \nabla f(y + t(x-y))^{\top} (x-y) dt -  \nabla f(y)^{\top} (x - y) \right| \\
+& \leq \int_0^1 \|\nabla f(y + t(x-y)) -  \nabla f(y)\| \cdot \|x - y\| dt \\
+& \leq \int_0^1 \beta t \|x-y\|^2 dt \\
+& = \frac{\beta}{2} \|x-y\|^2 .
+\end{align*}
+\end{proof}
+
+In particular this lemma shows that if $f$ is convex and $\beta$-smooth, then for any $x, y \in \R^n$, one has
+\begin{equation} \label{eq:defaltsmooth}
+0 \leq f(x) - f(y) - \nabla f(y)^{\top} (x - y) \leq \frac{\beta}{2} \|x - y\|^2 .
+\end{equation}
+This gives in particular the following important inequality to evaluate the improvement in one step of gradient descent:
+\begin{equation} \label{eq:onestepofgd}
+f\left(x - \frac{1}{\beta} \nabla f(x)\right) - f(x) \leq - \frac{1}{2 \beta} \|\nabla f(x)\|^2 .
+\end{equation}
+The next lemma, which improves the basic inequality for subgradients under the smoothness assumption, shows that in fact $f$ is convex and $\beta$-smooth if and only if \eqref{eq:defaltsmooth} holds true. In the literature \eqref{eq:defaltsmooth} is often used as a definition of smooth convex functions.
+
+\begin{lemma} \label{lem:2}
+Let $f$ be such that \eqref{eq:defaltsmooth} holds true. Then for any $x, y \in \R^n$, one has
+$$f(x) - f(y) \leq \nabla f(x)^{\top} (x - y) - \frac{1}{2 \beta} \|\nabla f(x) - \nabla f(y)\|^2 .$$
+\end{lemma}
+
+\begin{proof}
+Let $z = y - \frac{1}{\beta} (\nabla f(y) - \nabla f(x))$. Then one has
+\begin{align*}
+& f(x) - f(y) \\
+& = f(x) - f(z) + f(z) - f(y) \\
+& \leq \nabla f(x)^{\top} (x-z) + \nabla f(y)^{\top} (z-y) + \frac{\beta}{2} \|z - y\|^2 \\
+& = \nabla f(x)^{\top}(x-y) + (\nabla f(x) - \nabla f(y))^{\top} (y-z) + \frac{1}{2 \beta} \|\nabla f(x) - \nabla f(y)\|^2 \\
+& = \nabla f(x)^{\top} (x - y) - \frac{1}{2 \beta} \|\nabla f(x) - \nabla f(y)\|^2 .
+\end{align*}
+\end{proof}
+
+We can now prove Theorem \ref{th:gdsmooth}
+
+\begin{proof}
+Using \eqref{eq:onestepofgd} and the definition of the method one has
+$$f(x_{s+1}) - f(x_s) \leq - \frac{1}{2 \beta} \|\nabla f(x_s)\|^2.$$
+In particular, denoting $\delta_s = f(x_s) - f(x^*)$, this shows:
+$$\delta_{s+1} \leq \delta_s  - \frac{1}{2 \beta} \|\nabla f(x_s)\|^2.$$
+One also has by convexity
+$$\delta_s \leq \nabla f(x_s)^{\top} (x_s - x^*) \leq \|x_s - x^*\| \cdot \|\nabla f(x_s)\| .$$
+We will prove that $\|x_s - x^*\|$ is decreasing with $s$, which with the two above displays will imply
+$$\delta_{s+1} \leq \delta_s  - \frac{1}{2 \beta \|x_1 - x^*\|^2} \delta_s^2.$$
+Let us see how to use this last inequality to conclude the proof. Let $\omega = \frac{1}{2 \beta \|x_1 - x^*\|^2}$, then\footnote{The last step in the sequence of implications can be improved by taking $\delta_1$ into account. Indeed one can easily show with \eqref{eq:defaltsmooth} that $\delta_1 \leq \frac{1}{4 \omega}$. This improves the rate of Theorem \ref{th:gdsmooth} from $\frac{2 \beta \|x_1 - x^*\|^2}{t-1}$ to $\frac{2 \beta \|x_1 - x^*\|^2}{t+3}$.}
+$$\omega \delta_s^2 + \delta_{s+1} \leq \delta_s \Leftrightarrow \omega \frac{\delta_s}{\delta_{s+1}} + \frac{1}{\delta_{s}} \leq \frac{1}{\delta_{s+1}} \Rightarrow \frac{1}{\delta_{s+1}} - \frac{1}{\delta_{s}} \geq \omega \Rightarrow \frac{1}{\delta_t} \geq \omega (t-1) .$$
+%The last inequality concludes the proof since by $\beta$-smoothness (and Lemma \ref{lem:sand}) one has
+%$$f(x_1) - f(x^*) \leq \nabla f(x^*)^{\top} (x_1 - x^*) + \frac{\beta}{2} \|x_1 - x^*\|^2 = \frac{1}{4 \omega} .$$
+Thus it only remains to show that $\|x_s - x^*\|$ is decreasing with $s$. Using Lemma \ref{lem:2} one immediately gets
+\begin{equation} \label{eq:coercive1}
+(\nabla f(x) - \nabla f(y))^{\top} (x - y) \geq \frac{1}{\beta} \|\nabla f(x) - \nabla f(y)\|^2 .
+\end{equation}
+We use this as follows (together with $\nabla f(x^*) = 0$)
+\begin{eqnarray*}
+\|x_{s+1} - x^*\|^2& = & \|x_{s} - \frac{1}{\beta} \nabla f(x_s) - x^*\|^2 \\
+& = & \|x_{s} - x^*\|^2 - \frac{2}{\beta} \nabla f(x_s)^{\top} (x_s - x^*) + \frac{1}{\beta^2} \|\nabla f(x_s)\|^2 \\
+& \leq & \|x_{s} - x^*\|^2 - \frac{1}{\beta^2} \|\nabla f(x_s)\|^2 \\
+& \leq & \|x_{s} - x^*\|^2 ,
+\end{eqnarray*}
+which concludes the proof.
+\end{proof}
+
+\subsection*{The constrained case}
+We now come back to the constrained problem
+\begin{align*}
+& \mathrm{min.} \; f(x) \\
+& \text{s.t.} \; x \in \cX .
+\end{align*}
+Similarly to what we did in Section \ref{sec:psgd} we consider the projected gradient descent algorithm, which iterates $x_{t+1} = \Pi_{\cX}(x_t - \eta \nabla f(x_t))$. 
+%where we define the projection operator $\Pi_{\cX}$ by
+%$$\Pi_{\cX}(x) = \argmin_{y \in \mathcal{X}} \|x - y\| .$$
+
+The key point in the analysis of gradient descent for unconstrained smooth optimization is that a step of gradient descent started at $x$ will decrease the function value by at least $\frac{1}{2\beta} \|\nabla f(x)\|^2$, see \eqref{eq:onestepofgd}. In the constrained case we cannot expect that this would still hold true as a step may be cut short by the projection. The next lemma defines the ``right" quantity to measure progress in the constrained case.
+
+\begin{lemma} \label{lem:smoothconst}
+Let $x, y \in \cX$, $x^+ = \Pi_{\cX}\left(x - \frac{1}{\beta} \nabla f(x)\right)$, and $g_{\cX}(x) = \beta(x - x^+)$. Then the following holds true:
+$$f(x^+) - f(y) \leq g_{\cX}(x)^{\top}(x-y) - \frac{1}{2 \beta} \|g_{\cX}(x)\|^2 .$$
+\end{lemma}
+
+\begin{proof}
+We first observe that 
+\begin{equation} \label{eq:chap3eq1}
+\nabla f(x)^{\top} (x^+ - y) \leq g_{\cX}(x)^{\top}(x^+ - y) .
+\end{equation}
+Indeed the above inequality is equivalent to
+$$\left(x^+- \left(x - \frac{1}{\beta} \nabla f(x) \right)\right)^{\top} (x^+ - y) \leq 0, $$
+which follows from Lemma \ref{lem:todonow}. Now we use \eqref{eq:chap3eq1} as follows to prove the lemma (we also use \eqref{eq:defaltsmooth} which still holds true in the constrained case)
+\begin{align*}
+& f(x^+) - f(y) \\
+& = f(x^+) - f(x) + f(x) - f(y) \\
+& \leq \nabla f(x)^{\top} (x^+-x) + \frac{\beta}{2} \|x^+-x\|^2 + \nabla f(x)^{\top} (x-y) \\
+& = \nabla f(x)^{\top} (x^+ - y) + \frac{1}{2 \beta} \|g_{\cX}(x)\|^2 \\
+& \leq g_{\cX}(x)^{\top}(x^+ - y) + \frac{1}{2 \beta} \|g_{\cX}(x)\|^2 \\
+& = g_{\cX}(x)^{\top}(x - y) - \frac{1}{2 \beta} \|g_{\cX}(x)\|^2 .
+\end{align*}
+\end{proof}
+We can now prove the following result.
+\begin{theorem} \label{th:gdsmoothconstrained}
+Let $f$ be convex and $\beta$-smooth on $\cX$. Then projected gradient descent with $\eta = \frac{1}{\beta}$ satisfies
+$$f(x_t) - f(x^*) \leq \frac{3 \beta \|x_1 - x^*\|^2 + f(x_1) - f(x^*)}{t} .$$
+\end{theorem}
+
+\begin{proof}
+Lemma \ref{lem:smoothconst} immediately gives
+$$f(x_{s+1}) - f(x_s) \leq - \frac{1}{2 \beta} \|g_{\cX}(x_s)\|^2 ,$$
+and
+$$f(x_{s+1}) - f(x^*) \leq \|g_{\cX}(x_s)\| \cdot \|x_s - x^*\| .$$
+We will prove that $\|x_s - x^*\|$ is decreasing with $s$, which with the two above displays will imply
+$$\delta_{s+1} \leq \delta_s  - \frac{1}{2 \beta \|x_1 - x^*\|^2} \delta_{s+1}^2.$$
+An easy induction shows that
+$$\delta_s \leq \frac{3 \beta \|x_1 - x^*\|^2 + f(x_1) - f(x^*)}{s}.$$
+Thus it only remains to show that $\|x_s - x^*\|$ is decreasing with $s$. Using Lemma \ref{lem:smoothconst} one can see that $g_{\cX}(x_s)^{\top} (x_s - x^*) \geq \frac{1}{2 \beta} \|g_{\cX}(x_s)\|^2$ which implies
+\begin{eqnarray*}
+\|x_{s+1} - x^*\|^2& = & \|x_{s} - \frac{1}{\beta} g_{\cX}(x_s) - x^*\|^2 \\
+& = & \|x_{s} - x^*\|^2 - \frac{2}{\beta} g_{\cX}(x_s)^{\top} (x_s - x^*) + \frac{1}{\beta^2} \|g_{\cX}(x_s)\|^2 \\
+& \leq & \|x_{s} - x^*\|^2 .
+\end{eqnarray*}
+\end{proof}
+
+\section{Conditional gradient descent, aka Frank-Wolfe} \label{sec:FW}
+%The rate of convergence we just proved for Conditional Gradient Descent is no better than the rate of Projected Gradient Descent in the same setting. However, on the contrary to the latter algorithm where a quadratic programming problem over $\mathcal{X}$ has to be solved (the projection step), here we only need to solve a linear problem over $\mathcal{X}$, and in some cases this can be much simpler.
+%
+We describe now an alternative algorithm to minimize a smooth convex function $f$ over a compact convex set $\mathcal{X}$. The {\em conditional gradient descent}, introduced in \cite{FW56}, performs the following update for $t \geq 1$, where $(\gamma_s)_{s \geq 1}$ is a fixed sequence,
+\begin{align}
+&y_{t} \in \mathrm{argmin}_{y \in \mathcal{X}} \nabla f(x_t)^{\top} y \label{eq:FW1} \\
+& x_{t+1} = (1 - \gamma_t) x_t + \gamma_t y_t . \label{eq:FW2}
+\end{align}
+In words conditional gradient descent makes a step in the steepest descent direction {\em given the constraint set $\cX$}, see Figure \ref{fig:FW} for an illustration. From a computational perspective, a key property of this scheme is that it replaces the projection step of projected gradient descent by a linear optimization over $\cX$, which in some cases can be a much simpler problem. 
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[scale=3]
+\node [tokens=1] (noeud1) at (0.1,-0.1) [label=below right:{$x_t$}] {};
+\node [tokens=1] (noeud2) at (-0.38,0.65) [label=above left:{$y_{t}$}] {};
+\draw[->, thick] (noeud1) -- (-0.05, 0.4) node[midway, right] {$-\nabla f(x_t)$};
+\node [tokens=1] (noeud3) at (-0.065,0.15) [label=below left:{$x_{t+1}$}] {};
+\draw[thick, dashed] (noeud1) -- (noeud2) {};
+\node at (0.3,-0.55) {$\cX$};
+\node (S) [very thick, regular polygon, regular polygon sides=6, draw,
+inner sep=40] at (0,0) {};
+\end{tikzpicture}
+\end{center}
+\caption{Illustration of conditional gradient descent.}
+\label{fig:FW}
+\end{figure}
+
+We now turn to the analysis of this method. A major advantage of conditional gradient descent over projected gradient descent is that the former can adapt to smoothness in an arbitrary norm. Precisely let $f$ be $\beta$-smooth in some norm $\|\cdot\|$, that is $\|\nabla f(x) - \nabla f(y) \|_* \leq \beta \|x-y\|$ where the dual norm $\|\cdot\|_*$ is defined as $\|g\|_* = \sup_{x \in \mathbb{R}^n : \|x\| \leq 1} g^{\top} x$. The following result is extracted from \cite{Jag13} (see also \cite{DH78}).
+%
+%Conditional Gradient Descent is an algorithm designed to minimize a smooth convex function $f$ over a compact convex set $\mathcal{X}$. It performs the following update for $t \geq 1$:
+%\begin{align*}
+%&y_{t} \in \mathrm{argmin}_{y \in \mathcal{X}} \nabla f(x_t)^{\top} y \\
+%& x_{t+1} = (1 - \gamma_t) x_t + \gamma_t y_t .
+%\end{align*}
+%This algorithm goes back to \cite{FW56}, and the following result is extracted from \cite{Jag13}. We consider here functions which are $\beta$-smooth in some arbitrary norm $\|\cdot\|$, that is $\|\nabla f(x) - \nabla f(y) \|_* \leq \beta \|x-y\|$ where the dual norm $\|\cdot\|_*$ is defined as $\|g\|_* = \sup_{x \in \mathbb{R}^n : \|x\| \leq 1} g^{\top} x$.
+
+\begin{theorem}
+Let $f$ be a convex and $\beta$-smooth function w.r.t. some norm $\|\cdot\|$, $R = \sup_{x, y \in \mathcal{X}} \|x - y\|$, and $\gamma_s = \frac{2}{s+1}$ for $s \geq 1$. Then for any $t \geq 2$, one has
+$$f(x_t) - f(x^*) \leq \frac{2 \beta R^2}{t+1} .$$
+\end{theorem}
+
+\begin{proof}
+The following inequalities hold true, using respectively $\beta$-smoothness (it can easily be seen that \eqref{eq:defaltsmooth} holds true for smoothness in an arbitrary norm), the definition of $x_{s+1}$, the definition of $y_s$, and the convexity of $f$:
+\begin{eqnarray*}
+f(x_{s+1}) - f(x_s) & \leq & \nabla f(x_s)^{\top} (x_{s+1} - x_s) + \frac{\beta}{2} \|x_{s+1} - x_s\|^2 \\
+& \leq & \gamma_s \nabla f(x_s)^{\top} (y_{s} - x_s) + \frac{\beta}{2} \gamma_s^2 R^2 \\
+& \leq & \gamma_s \nabla f(x_s)^{\top} (x^* - x_s) + \frac{\beta}{2} \gamma_s^2 R^2 \\
+& \leq & \gamma_s (f(x^*) - f(x_s)) + \frac{\beta}{2} \gamma_s^2 R^2 .
+\end{eqnarray*}
+Rewriting this inequality in terms of $\delta_s = f(x_s) - f(x^*)$ one obtains
+$$\delta_{s+1} \leq (1 - \gamma_s) \delta_s + \frac{\beta}{2} \gamma_s^2 R^2 .$$
+A simple induction using that $\gamma_s = \frac{2}{s+1}$ finishes the proof (note that the initialization is done at step $2$ with the above inequality yielding $\delta_2 \leq \frac{\beta}{2} R^2$).
+\end{proof}
+
+In addition to being projection-free and ``norm-free", the conditional gradient descent satisfies a perhaps even more important property: it produces {\em sparse iterates}. More precisely consider the situation where $\cX \subset \R^n$ is a polytope, that is the convex hull of a finite set of points (these points are called the vertices of $\cX$). Then Carath\'eodory's theorem states that any point $x \in \cX$ can be written as a convex combination of at most $n+1$ vertices of $\cX$. On the other hand, by definition of the conditional gradient descent, one knows that the $t^{th}$ iterate $x_t$ can be written as a convex combination of $t$ vertices (assuming that $x_1$ is a vertex). Thanks to the dimension-free rate of convergence one is usually interested in the regime where $t \ll n$, and thus we see that the iterates of conditional gradient descent are very sparse in their vertex representation.
+
+We note an interesting corollary of the sparsity property together with the rate of convergence we proved: smooth functions on the simplex $\{x \in \mathbb{R}_+^n : \sum_{i=1}^n x_i = 1\}$ always admit sparse approximate minimizers. More precisely there must exist a point $x$ with only $t$ non-zero coordinates and such that $f(x) - f(x^*) = O(1/t)$. Clearly this is the best one can hope for in general, as it can be seen with the function $f(x) = \|x\|^2_2$ since by Cauchy-Schwarz one has $\|x\|_1 \leq \sqrt{\|x\|_0} \|x\|_2$ which implies on the simplex $\|x\|_2^2 \geq 1 / \|x\|_0$.
+%
+%While being projection-free is an important property of Conditional Gradient Descent, a perhaps even more important property is that it produces {\em sparse iterates} in the following sense: Assume that $\mathcal{X}$ is a polytope with sparse vertices, that is the number of non-zero coordinates (which we denote by the $\ell_0$ norm $\|\cdot\|_0$ which is \textbf{not} a norm) in a fixed vertex is small, say of order $s \ll n$. Then at each iteration, the new iterate $x_{t+1}$ will increase its number of non-zero coordinates by at most $s$. In particular one has $\|x_{t+1}\|_0 \leq \|x_1\|_0 + t s$. We will see now an example of application where this property is critical to obtain a computationally tractable algorithm.
+
+Next we describe an application where the three properties of conditional gradient descent (projection-free, norm-free, and sparse iterates) are critical to develop a computationally efficient procedure.
+
+\subsection*{An application of conditional gradient descent: Least-squares regression with structured sparsity}
+This example is inspired by \cite{Lug10} (see also \cite{Jon92}). Consider the problem of approximating a signal $Y \in \mathbb{R}^n$ by a ``small" combination of dictionary elements $d_1, \hdots, d_N \in \mathbb{R}^n$. One way to do this is to consider a LASSO type problem in dimension $N$ of the following form (with $\lambda \in \R$ fixed)
+$$\min_{x \in \mathbb{R}^N} \big\| Y - \sum_{i=1}^N x(i) d_i \big\|_2^2 + \lambda \|x\|_1 .$$
+Let $D \in \mathbb{R}^{n \times N}$ be the dictionary matrix with $i^{th}$ column given by $d_i$. Instead of considering the penalized version of the problem one could look at the following constrained problem (with $s \in \R$ fixed) on which we will now focus, see e.g. \cite{FT07},
+\begin{eqnarray}
+\min_{x \in \mathbb{R}^N} \| Y - D x \|_2^2 
+& \qquad \Leftrightarrow \qquad & \min_{x \in \mathbb{R}^N} \| Y / s - D x \|_2^2 \label{eq:structuredsparsity} \\
+\text{subject to}  \; \|x\|_1 \leq s
+& & \text{subject to} \; \|x\|_1 \leq 1 . \notag
+\end{eqnarray}
+We make some assumptions on the dictionary. We are interested in situations where the size of the dictionary $N$ can be very large, potentially exponential in the ambient dimension $n$. Nonetheless we want to restrict our attention to algorithms that run in reasonable time with respect to the ambient dimension $n$, that is we want polynomial time algorithms in $n$. Of course in general this is impossible, and we need to assume that the dictionary has some structure that can be exploited. Here we make the assumption that one can do {\em linear optimization} over the dictionary in polynomial time in $n$. More precisely we assume that one can solve in time $p(n)$ (where $p$ is polynomial) the following problem for any $y \in \mathbb{R}^n$:
+$$\min_{1 \leq i \leq N} y^{\top} d_i .$$
+This assumption is met for many {\em combinatorial} dictionaries. For instance the dic­tio­nary ele­ments could be vec­tor of inci­dence of span­ning trees in some fixed graph, in which case the lin­ear opti­miza­tion prob­lem can be solved with a greedy algorithm.
+
+Finally, for normalization issues, we assume that the $\ell_2$-norm of the dictionary elements are controlled by some $m>0$, that is $\|d_i\|_2 \leq m, \forall i \in [N]$.
+
+Our problem of interest \eqref{eq:structuredsparsity} corresponds to minimizing the function $f(x) = \frac{1}{2} \| Y - D x \|^2_2$ on the $\ell_1$-ball of $\mathbb{R}^N$ in polynomial time in $n$. At first sight this task may seem completely impossible, indeed one is not even allowed to write down entirely a vector $x \in \mathbb{R}^N$ (since this would take time linear in $N$). The key property that will save us is that this function admits {\em sparse minimizers} as we discussed in the previous section, and this will be exploited by the conditional gradient descent method. 
+
+First let us study the computational complexity of the $t^{th}$ step of conditional gradient descent. Observe that
+$$\nabla f(x) = D^{\top} (D x - Y).$$
+Now assume that $z_t = D x_t - Y \in \mathbb{R}^n$ is already computed, then to compute \eqref{eq:FW1} one needs to find the coordinate $i_t \in [N]$ that maximizes $|[\nabla f(x_t)](i)|$ which can be done by maximizing $d_i^{\top} z_t$ and $- d_i^{\top} z_t$. Thus \eqref{eq:FW1} takes time $O(p(n))$. Computing $x_{t+1}$ from $x_t$ and $i_{t}$ takes time $O(t)$ since $\|x_t\|_0 \leq t$, and computing $z_{t+1}$ from $z_t$ and $i_t$ takes time $O(n)$. Thus the overall time complexity of running $t$ steps is (we assume $p(n) = \Omega(n)$) 
+\begin{equation}
+O(t p(n) + t^2). \label{eq:structuredsparsity2}
+\end{equation} 
+
+To derive a rate of convergence it remains to study the smoothness of $f$. This can be done as follows:
+\begin{eqnarray*}
+\| \nabla f(x) - \nabla f(y) \|_{\infty} & = & \|D^{\top} D (x-y) \|_{\infty} \\
+& = & \max_{1 \leq i \leq N} \bigg| d_i^{\top} \left(\sum_{j=1}^N d_j (x(j) - y(j))\right) \bigg| \\
+& \leq & m^2 \|x-y\|_1 ,
+\end{eqnarray*}
+which means that $f$ is $m^2$-smooth with respect to the $\ell_1$-norm. Thus we get the following rate of convergence:
+\begin{equation}
+f(x_t) - f(x^*) \leq \frac{8 m^2}{t+1} . \label{eq:structuredsparsity3}
+\end{equation}
+Putting together \eqref{eq:structuredsparsity2} and \eqref{eq:structuredsparsity3} we proved that one can get an $\epsilon$-optimal solution to \eqref{eq:structuredsparsity} with a computational effort of $O(m^2 p(n)/\epsilon + m^4/\epsilon^2)$ using the conditional gradient descent.
+
+\section{Strong convexity}
+We will now discuss another property of convex functions that can significantly speed-up the convergence of first order methods: strong convexity. We say that $f: \cX \rightarrow \mathbb{R}$ is $\alpha$-{\em strongly convex} if it satisfies the following improved subgradient inequality:
+\begin{equation} \label{eq:defstrongconv}
+f(x) - f(y) \leq \nabla f(x)^{\top} (x - y) - \frac{\alpha}{2} \|x - y \|^2 .
+\end{equation}
+Of course this definition does not require differentiability of the function $f$, and one can replace $\nabla f(x)$ in the inequality above by $g \in \partial f(x)$. It is immediate to verify that a function $f$ is $\alpha$-strongly convex if and only if $x \mapsto f(x) - \frac{\alpha}{2} \|x\|^2$ is convex (in particular if $f$ is twice differentiable then the eigenvalues of the Hessians of $f$ have to be larger than $\alpha$). The strong convexity parameter $\alpha$ is a measure of the {\em curvature} of $f$. For instance a linear function has no curvature and hence $\alpha = 0$. On the other hand one can clearly see why a large value of $\alpha$ would lead to a faster rate: in this case a point far from the optimum will have a large gradient, and thus gradient descent will make very big steps when far from the optimum. Of course if the function is non-smooth one still has to be careful and tune the step-sizes to be relatively small, but nonetheless we will be able to improve the oracle complexity from $O(1/\epsilon^2)$ to $O(1/(\alpha \epsilon))$. On the other hand with the additional assumption of $\beta$-smoothness we will prove that gradient descent with a constant step-size achieves a {\em linear rate of convergence}, precisely the oracle complexity will be $O(\frac{\beta}{\alpha} \log(1/\epsilon))$. This achieves the objective we had set after Theorem \ref{th:pgd}: strongly-convex and smooth functions can be optimized in very large dimension and up to very high accuracy.
+
+Before going into the proofs let us discuss another interpretation of strong-convexity and its relation to smoothness. Equation \eqref{eq:defstrongconv} can be read as follows: at any point $x$ one can find a (convex) quadratic lower bound $q_x^-(y) = f(x) + \nabla f(x)^{\top} (y - x) + \frac{\alpha}{2} \|x - y \|^2$ to the function $f$, i.e. $q_x^-(y) \leq f(y), \forall y \in \cX$ (and $q_x^-(x) = f(x)$). On the other hand for $\beta$-smoothness \eqref{eq:defaltsmooth}
+%
+%Thus in some sense strong convexity is a {\em dual} assumption to the smoothness assumption from previous lectures. Indeed recall that smoothness can be defined via the inequality:
+%$$f(x) - f(y) \leq \nabla f(y)^{\top} (x - y) + \frac{\beta}{2} \|x - y \|^2 ,$$
+%which 
+implies that at any point $y$ one can find a (convex) quadratic upper bound $q_y^+(x) = f(y) + \nabla f(y)^{\top} (x - y) + \frac{\beta}{2} \|x - y \|^2$ to the function $f$, i.e. $q_y^+(x) \geq f(x), \forall x \in \cX$ (and $q_y^+(y) = f(y)$). 
+Thus in some sense strong convexity is a {\em dual} assumption to smoothness, and in fact this can be made precise within the framework of Fenchel duality. Also remark that clearly one always has $\beta \geq \alpha$.
+
+\subsection{Strongly convex and Lipschitz functions}
+%In this section we investigate the setting where $f$ is strongly convex but potentially non-smooth. As we have already seen in a previous lecture, in the case of non-smooth functions we have to project back on the set where we control the norm of the gradients. Precisely let us assume that $\mathcal{X}$ is a compact and convex set such that $\forall x \in \mathcal{X}, \forall g \in \partial f(x), \|g\| \leq L$. 
+We consider here the projected subgradient descent algorithm with time-varying step size $(\eta_t)_{t \geq 1}$, that is
+\begin{align*}
+& y_{t+1} = x_t - \eta_t g_t , \ \text{where} \ g_t \in \partial f(x_t) \\
+& x_{t+1} = \Pi_{\cX}(y_{t+1}) .
+\end{align*}
+The following result is extracted from \cite{LJSB12}.
+
+\begin{theorem} \label{th:LJSB12}
+Let $f$ be $\alpha$-strongly convex and $L$-Lipschitz on $\cX$. Then projected subgradient descent with $\eta_s = \frac{2}{\alpha (s+1)}$ satisfies
+$$f \left(\sum_{s=1}^t \frac{2 s}{t(t+1)} x_s \right) - f(x^*) \leq \frac{2 L^2}{\alpha (t+1)} .$$
+\end{theorem}
+
+\begin{proof}
+Coming back to our original analysis of projected subgradient descent in Section \ref{sec:psgd} and using the strong convexity assumption one immediately obtains
+$$f(x_s) - f(x^*) \leq \frac{\eta_s}{2} L^2 + \left( \frac{1}{2 \eta_s} - \frac{\alpha}{2} \right) \|x_s - x^*\|^2 - \frac{1}{2 \eta_s} \|x_{s+1} - x^*\|^2 .$$
+Multiplying this inequality by $s$ yields
+$$s( f(x_s) - f(x^*) ) \leq \frac{L^2}{\alpha} + \frac{\alpha}{4} \bigg( s(s-1) \|x_s - x^*\|^2 - s (s+1) \|x_{s+1} - x^*\|^2 \bigg),$$
+Now sum the resulting inequality over $s=1$ to $s=t$, and apply Jensen's inequality to obtain the claimed statement.
+\end{proof}
+
+\subsection{Strongly convex and smooth functions}
+As we will see now, having both strong convexity and smoothness allows for a drastic improvement in the convergence rate. We denote $\kappa= \frac{\beta}{\alpha}$ for the {\em condition number} of $f$. The key observation is that Lemma \ref{lem:smoothconst} can be improved to (with the notation of the lemma):
+\begin{equation} \label{eq:improvedstrongsmooth}
+f(x^+) - f(y) \leq g_{\cX}(x)^{\top}(x-y) - \frac{1}{2 \beta} \|g_{\cX}(x)\|^2 - \frac{\alpha}{2} \|x-y\|^2 .
+\end{equation}
+
+\begin{theorem} \label{th:gdssc}
+Let $f$ be $\alpha$-strongly convex and $\beta$-smooth on $\cX$. Then projected gradient descent with $\eta = \frac{1}{\beta}$ satisfies for $t \geq 0$,
+$$\|x_{t+1} - x^*\|^2 \leq \exp\left( - \frac{t}{\kappa} \right) \|x_1 - x^*\|^2 .$$
+\end{theorem}
+
+\begin{proof}
+Using \eqref{eq:improvedstrongsmooth} with $y=x^*$ one directly obtains
+\begin{eqnarray*}
+\|x_{t+1} - x^*\|^2& = & \|x_{t} - \frac{1}{\beta} g_{\cX}(x_t) - x^*\|^2 \\
+& = & \|x_{t} - x^*\|^2 - \frac{2}{\beta} g_{\cX}(x_t)^{\top} (x_t - x^*) + \frac{1}{\beta^2} \|g_{\cX}(x_t)\|^2 \\
+& \leq & \left(1 - \frac{\alpha}{\beta} \right) \|x_{t} - x^*\|^2 \\
+& \leq & \left(1 - \frac{\alpha}{\beta} \right)^t \|x_{1} - x^*\|^2 \\
+& \leq & \exp\left( - \frac{t}{\kappa} \right) \|x_1 - x^*\|^2 ,
+\end{eqnarray*}
+which concludes the proof.
+\end{proof}
+
+We now show that in the unconstrained case one can improve the rate by a constant factor, precisely one can replace $\kappa$ by $(\kappa+1) / 4$ in the oracle complexity bound by using a larger step size. This is not a spectacular gain but the reasoning is based on an improvement of \eqref{eq:coercive1} which can be of interest by itself. Note that \eqref{eq:coercive1} and the lemma to follow are sometimes referred to as {\em coercivity} of the gradient.
+
+\begin{lemma} \label{lem:coercive2}
+Let $f$ be $\beta$-smooth and $\alpha$-strongly convex on $\R^n$. Then for all $x, y \in \mathbb{R}^n$, one has
+$$(\nabla f(x) - \nabla f(y))^{\top} (x - y) \geq \frac{\alpha \beta}{\beta + \alpha} \|x-y\|^2 + \frac{1}{\beta + \alpha} \|\nabla f(x) - \nabla f(y)\|^2 .$$
+\end{lemma}
+
+\begin{proof}
+Let $\phi(x) = f(x) - \frac{\alpha}{2} \|x\|^2$. By definition of $\alpha$-strong convexity one has that $\phi$ is convex. Furthermore one can show that $\phi$ is $(\beta-\alpha)$-smooth by proving \eqref{eq:defaltsmooth} (and using that it implies smoothness). Thus using \eqref{eq:coercive1} one gets
+$$(\nabla \phi(x) - \nabla \phi(y))^{\top} (x - y) \geq \frac{1}{\beta - \alpha} \|\nabla \phi(x) - \nabla \phi(y)\|^2 ,$$
+which gives the claimed result with straightforward computations. (Note that if $\alpha = \beta$ the smoothness of $\phi$ directly implies that $\nabla f(x) - \nabla f(y) = \alpha (x-y)$ which proves the lemma in this case.)
+\end{proof}
+
+\begin{theorem}
+Let $f$ be $\beta$-smooth and $\alpha$-strongly convex on $\R^n$. Then gradient descent with $\eta = \frac{2}{\alpha + \beta}$ satisfies
+$$f(x_{t+1}) - f(x^*) \leq \frac{\beta}{2} \exp\left( - \frac{4 t}{\kappa+1} \right) \|x_1 - x^*\|^2 .$$
+\end{theorem}
+
+\begin{proof}
+First note that by $\beta$-smoothness (since $\nabla f(x^*) = 0$) one has
+$$f(x_t) - f(x^*) \leq \frac{\beta}{2} \|x_t - x^*\|^2 .$$
+Now using Lemma \ref{lem:coercive2} one obtains
+\begin{eqnarray*}
+\|x_{t+1} - x^*\|^2& = & \|x_{t} - \eta \nabla f(x_{t}) - x^*\|^2 \\
+& = & \|x_{t} - x^*\|^2 - 2 \eta \nabla f(x_{t})^{\top} (x_{t} - x^*) + \eta^2 \|\nabla f(x_{t})\|^2 \\
+& \leq & \left(1 - 2 \frac{\eta \alpha \beta}{\beta + \alpha}\right)\|x_{t} - x^*\|^2 + \left(\eta^2 - 2 \frac{\eta}{\beta + \alpha}\right) \|\nabla f(x_{t})\|^2 \\
+& = & \left(\frac{\kappa - 1}{\kappa+1}\right)^2 \|x_{t} - x^*\|^2 \\
+& \leq & \exp\left( - \frac{4 t}{\kappa+1} \right) \|x_1 - x^*\|^2 ,
+\end{eqnarray*}
+which concludes the proof.
+\end{proof}
+
+\section{Lower bounds} \label{sec:chap3LB}
+We prove here various oracle complexity lower bounds. These results first appeared in \cite{NY83} but we follow here the simplified presentation of \cite{Nes04}. In general a black-box procedure is a mapping from ``history" to the next query point, that is it maps $(x_1, g_1, \hdots, x_t, g_t)$ (with $g_s \in \partial f (x_s)$) to $x_{t+1}$. In order to simplify the notation and the argument, throughout the section we make the following assumption on the black-box procedure: $x_1=0$ and for any $t \geq 0$, $x_{t+1}$ is in the linear span of $g_1, \hdots, g_t$, that is
+\begin{equation} \label{eq:ass1}
+x_{t+1} \in \mathrm{Span}(g_1, \hdots, g_t) .
+\end{equation}
+Let $e_1, \hdots, e_n$ be the canonical basis of $\mathbb{R}^n$, and $\mB_2(R) = \{x \in \R^n : \|x\| \leq R\}$. We start with a theorem for the two non-smooth cases (convex and strongly convex).
+
+\begin{theorem} \label{th:lb1}
+Let $t \leq n$, $L, R >0$. There exists a convex and $L$-Lipschitz function $f$ such that for any black-box procedure satisfying \eqref{eq:ass1},
+$$\min_{1 \leq s \leq t} f(x_s) - \min_{x \in \mB_2(R)} f(x) \geq  \frac{R L}{2 (1 + \sqrt{t})} .$$
+There also exists an $\alpha$-strongly convex and $L$-lipschitz function $f$ such that for any black-box procedure satisfying \eqref{eq:ass1},
+$$\min_{1 \leq s \leq t} f(x_s) - \min_{x \in \mB_2\left(\frac{L}{2 \alpha}\right)} f(x) \geq  \frac{L^2}{8 \alpha t} .$$
+\end{theorem}
+
+Note that the above result is restricted to a number of iterations smaller than the dimension, that is $t \leq n$. This restriction is of course necessary to obtain lower bounds polynomial in $1/t$: as we saw in Chapter \ref{finitedim} one can always obtain an exponential rate of convergence when the number of calls to the oracle is larger than the dimension. 
+
+\begin{proof}
+We consider the following $\alpha$-strongly convex function:
+$$f(x) = \gamma \max_{1 \leq i \leq t} x(i) + \frac{\alpha}{2} \|x\|^2 .$$
+It is easy to see that
+$$\partial f(x) = \alpha x + \gamma \conv\left(e_i , i : x(i) = \max_{1 \leq j \leq t} x(j) \right).$$
+In particular if $\|x\| \leq R$ then for any $g \in \partial f(x)$ one has $\|g\| \leq \alpha R + \gamma$. In other words $f$ is $(\alpha R + \gamma)$-Lipschitz on $\mB_2(R)$.
+
+Next we describe the first order oracle for this function: when asked for a subgradient at $x$, it returns $\alpha x + \gamma e_{i}$ where $i$ is the {\em first} coordinate that satisfies $x(i) = \max_{1 \leq j \leq t} x(j)$. In particular when asked for a subgradient at $x_1=0$ it returns $e_1$. Thus $x_2$ must lie on the line generated by $e_1$. It is easy to see by induction that in fact $x_s$ must lie in the linear span of $e_1, \hdots, e_{s-1}$. In particular for $s \leq t$ we necessarily have $x_s(t) = 0$ and thus $f(x_s) \geq 0$.
+
+It remains to compute the minimal value of $f$. Let $y$ be such that $y(i) = - \frac{\gamma}{\alpha t}$ for $1 \leq i \leq t$ and $y(i) = 0$ for $t+1 \leq i \leq n$. It is clear that $0 \in \partial f(y)$ and thus the minimal value of $f$ is
+$$f(y) = - \frac{\gamma^2}{\alpha t} + \frac{\alpha}{2} \frac{\gamma^2}{\alpha^2 t} = - \frac{\gamma^2}{2 \alpha t} .$$ 
+
+Wrapping up, we proved that for any $s \leq t$ one must have
+$$f(x_s) - f(x^*) \geq \frac{\gamma^2}{2 \alpha t} .$$
+Taking $\gamma = L/2$ and $R= \frac{L}{2 \alpha}$ we proved the lower bound for $\alpha$-strongly convex functions (note in particular that $\|y\|^2 = \frac{\gamma^2}{\alpha^2 t} = \frac{L^2}{4 \alpha^2 t} \leq R^2$ with these parameters). On the other taking $\alpha = \frac{L}{R} \frac{1}{1 + \sqrt{t}}$ and $\gamma = L \frac{\sqrt{t}}{1 + \sqrt{t}}$ concludes the proof for convex functions (note in particular that $\|y\|^2 = \frac{\gamma^2}{\alpha^2 t} = R^2$ with these parameters).
+\end{proof}
+
+We proceed now to the smooth case. As we will see in the following proofs we restrict our attention to quadratic functions, and it might be useful to recall that in this case one can attain the exact optimum in $n$ calls to the oracle (see Section \ref{sec:CG}). We also recall that for a twice differentiable function $f$, $\beta$-smoothness is equivalent to the largest eigenvalue of the Hessians of $f$ being smaller than $\beta$ at any point, which we write
+$$\nabla^2 f(x) \preceq \beta \mI_n , \forall x .$$
+Furthermore $\alpha$-strong convexity is equivalent to 
+$$\nabla^2 f(x) \succeq \alpha \mI_n , \forall x .$$
+
+
+\begin{theorem} \label{th:lb2}
+Let $t \leq (n-1)/2$, $\beta >0$. There exists a $\beta$-smooth convex function $f$ such that for any black-box procedure satisfying \eqref{eq:ass1},
+$$\min_{1 \leq s \leq t} f(x_s) - f(x^*) \geq  \frac{3 \beta}{32} \frac{\|x_1 - x^*\|^2}{(t+1)^2} .$$
+\end{theorem}
+
+\begin{proof} In this proof for $h: \R^n \rightarrow \R$ we denote $h^* = \inf_{x \in \R^n} h(x)$.
+For $k \leq n$ let $A_k \in \R^{n \times n}$ be the symmetric and tridiagonal matrix defined by
+$$(A_k)_{i,j}  = \left\{\begin{array}{ll} 
+2, & i = j, i \leq k \\
+-1, & j \in \{i-1, i+1\}, i \leq k, j \neq k+1\\
+0, & \text{otherwise}.
+\end{array}\right.$$
+It is easy to verify that $0 \preceq A_k \preceq 4 \mI_n$ since
+$$x^{\top} A_k x = 2 \sum_{i=1}^k x(i)^2 - 2 \sum_{i=1}^{k-1} x(i) x(i+1) = x(1)^2 + x(k)^2 + \sum_{i=1}^{k-1} (x(i) - x(i+1))^2 .$$
+
+We consider now the following $\beta$-smooth convex function:
+$$f(x) = \frac{\beta}{8} x^{\top} A_{2 t + 1} x - \frac{\beta}{4} x^{\top} e_1 .$$
+Similarly to what happened in the proof Theorem \ref{th:lb1}, one can see here too that $x_s$ must lie in the linear span of $e_1, \hdots, e_{s-1}$ (because of our assumption on the black-box procedure). In particular for $s \leq t$ we necessarily have $x_s(i) = 0$ for $i=s, \hdots, n$, which implies $x_s^{\top} A_{2 t+1} x_s = x_s^{\top} A_{s} x_s$. In other words, if we denote
+$$f_k(x) = \frac{\beta}{8} x^{\top} A_{k} x - \frac{\beta}{4} x^{\top} e_1 ,$$
+then we just proved that
+$$f(x_s) - f^* = f_s(x_s) - f_{2t+1}^* \geq f_{s}^* - f_{2 t + 1}^* \geq f_{t}^* - f_{2 t + 1}^* .$$
+Thus it simply remains to compute the minimizer $x^*_k$ of $f_k$, its norm, and the corresponding function value $f_k^*$.
+
+The point $x^*_k$ is the unique solution in the span of $e_1, \hdots, e_k$ of $A_k x = e_1$. It is easy to verify that it is defined by $x^*_k(i) = 1 - \frac{i}{k+1}$ for $i=1, \hdots, k$. Thus we immediately have:
+$$f^*_k = \frac{\beta}{8} (x^*_k)^{\top} A_{k} x^*_k - \frac{\beta}{4} (x^*_k)^{\top} e_1 = - \frac{\beta}{8} (x^*_k)^{\top} e_1 = - \frac{\beta}{8} \left(1 - \frac{1}{k+1}\right) .$$
+Furthermore note that
+$$\|x^*_k\|^2 = \sum_{i=1}^k \left(1 - \frac{i}{k+1}\right)^2 = \sum_{i=1}^k \left( \frac{i}{k+1}\right)^2 \leq \frac{k+1}{3} .$$
+Thus one obtains:
+$$f_{t}^* - f_{2 t+1}^* = \frac{\beta}{8} \left(\frac{1}{t+1} - \frac{1}{2 t + 2} \right) \geq \frac{3 \beta}{32} \frac{\|x^*_{2 t + 1}\|^2}{(t+1)^2},$$
+which concludes the proof.
+\end{proof}
+
+To simplify the proof of the next theorem we will consider the limiting situation $n \to +\infty$. More precisely we assume now that we are working in $\ell_2 = \{ x = (x(n))_{n \in \mathbb{N}} : \sum_{i=1}^{+\infty} x(i)^2 < + \infty\}$ rather than in $\mathbb{R}^n$. Note that all the theorems we proved in this chapter are in fact valid in an arbitrary Hilbert space $\mathcal{H}$. We chose to work in $\mathbb{R}^n$ only for clarity of the exposition.
+
+\begin{theorem} \label{th:lb3}
+Let $\kappa > 1$. There exists a $\beta$-smooth and $\alpha$-strongly convex function $f: \ell_2 \rightarrow \mathbb{R}$ with $\kappa = \beta / \alpha$ such that for any $t \geq 1$ and any black-box procedure satisfying \eqref{eq:ass1} one has
+$$f(x_t) - f(x^*) \geq  \frac{\alpha}{2}  \left(\frac{\sqrt{\kappa} - 1}{\sqrt{\kappa}+1}\right)^{2 (t-1)} \|x_1 - x^*\|^2 .$$
+\end{theorem}
+
+Note that for large values of the condition number $\kappa$ one has 
+$$\left(\frac{\sqrt{\kappa} - 1}{\sqrt{\kappa}+1}\right)^{2 (t-1)} \approx \exp\left(- \frac{4 (t-1)}{\sqrt{\kappa}} \right) .$$
+
+\begin{proof}
+The overall argument is similar to the proof of Theorem \ref{th:lb2}. Let $A : \ell_2 \rightarrow \ell_2$ be the linear operator that corresponds to the infinite tridiagonal matrix with $2$ on the diagonal and $-1$ on the upper and lower diagonals. We consider now the following function:
+$$f(x) = \frac{\alpha (\kappa-1)}{8} \left(\langle Ax, x\rangle - 2 \langle e_1, x \rangle \right) + \frac{\alpha}{2} \|x\|^2 .$$
+We already proved that $0 \preceq A \preceq 4 \mI$ which easily implies that $f$ is $\alpha$-strongly convex and $\beta$-smooth. Now as always the key observation is that for this function, thanks to our assumption on the black-box procedure, one necessarily has $x_t(i) = 0, \forall i \geq t$. This implies in particular:
+$$\|x_t - x^*\|^2 \geq \sum_{i=t}^{+\infty} x^*(i)^2 .$$
+Furthermore since $f$ is $\alpha$-strongly convex, one has
+$$f(x_t) - f(x^*) \geq \frac{\alpha}{2} \|x_t - x^*\|^2 .$$
+Thus it only remains to compute $x^*$. This can be done by differentiating $f$ and setting the gradient to $0$, which gives the following infinite set of equations
+\begin{align*}
+& 1 - 2 \frac{\kappa+1}{\kappa-1} x^*(1) + x^*(2) = 0 , \\
+& x^*(k-1) - 2 \frac{\kappa+1}{\kappa-1} x^*(k) + x^*(k+1) = 0, \forall k \geq 2 .
+\end{align*}
+It is easy to verify that $x^*$ defined by $x^*(i) = \left(\frac{\sqrt{\kappa} - 1}{\sqrt{\kappa} + 1}\right)^i$ satisfy this infinite set of equations, and the conclusion of the theorem then follows by straightforward computations.
+\end{proof}
+
+\section{Geometric descent} \label{sec:GeoD}
+So far our results leave a gap in the case of smooth optimization: gradient descent achieves an oracle complexity of $O(1/\epsilon)$ (respectively $O(\kappa \log(1/\epsilon))$ in the strongly convex case) while we proved a lower bound of $\Omega(1/\sqrt{\epsilon})$ (respectively $\Omega(\sqrt{\kappa} \log(1/\epsilon))$). In this section we close these gaps with the geometric descent method which was recently introduced in \cite{BLS15}. Historically the first method with optimal oracle complexity was proposed in \cite{NY83}. This method, inspired by the conjugate gradient (see Section \ref{sec:CG}), assumes an oracle to compute {\em plane searches}. In \cite{Nem82} this assumption was relaxed to a line search oracle (the geometric descent method also requires a line search oracle). Finally in \cite{Nes83} an optimal method requiring only a first order oracle was introduced. The latter algorithm, called Nesterov's accelerated gradient descent, has been the most influential optimal method for smooth optimization up to this day. We describe and analyze this method in Section \ref{sec:AGD}. As we shall see the intuition behind Nesterov's accelerated gradient descent (both for the derivation of the algorithm and its analysis) is not quite transparent, which motivates the present section as geometric descent has a simple geometric interpretation loosely inspired from the ellipsoid method (see Section \ref{sec:ellipsoid}).
+
+We focus here on the unconstrained optimization of a smooth and strongly convex function, and we prove that geometric descent achieves the oracle complexity of $O(\sqrt{\kappa} \log(1/\epsilon))$, thus reducing the complexity of the basic gradient descent by a factor $\sqrt{\kappa}$. We note that this improvement is quite relevant for machine learning applications. Consider for example the logistic regression problem described in Section \ref{sec:mlapps}: this is a smooth and strongly convex problem, with a smoothness of order of a numerical constant, but with strong convexity equal to the regularization parameter whose inverse can be as large as the sample size. Thus in this case $\kappa$ can be of order of the sample size, and a faster rate by a factor of $\sqrt{\kappa}$ is quite significant. We also observe that this improved rate for smooth and strongly convex objectives also implies an almost optimal rate of $O(\log(1/\epsilon) / \sqrt{\epsilon})$ for the smooth case, as one can simply run geometric descent on the function $x \mapsto f(x) + \epsilon \|x\|^2$. 
+
+In Section \ref{sec:warmup} we describe the basic idea of geometric descent, and we show how to obtain effortlessly a geometric method with an oracle complexity of $O(\kappa \log(1/\epsilon))$ (i.e., similar to gradient descent). Then we explain why one should expect to be able to accelerate this method in Section \ref{sec:accafterwarmup}. The geometric descent method is described precisely and analyzed in Section \ref{sec:GeoDmethod}.
+
+\subsection{Warm-up: a geometric alternative to gradient descent} \label{sec:warmup}
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[scale=0.7, every node/.style={transform shape}]
+
+\draw  (0,0) ellipse (2 and 2);
+\draw[dashed]  (4,0) ellipse (4 and 4);
+\draw  (4,0) ellipse (3.85 and 3.85);
+\draw [|-|] (4,0) -- (4,4) node[pos=0.5, right] {$|g|$};
+\draw [|-|] (4,0) -- (7.85,0) node[pos=0.5, above] {$\sqrt{1-\epsilon}\ |g|$};
+
+\begin{scope}
+  \clip (0,0) ellipse (2 and 2);
+  \fill[lightgray] (4,0) ellipse (3.85 and 3.85);
+\end{scope}
+
+\draw (0,0) node[cross=5pt] {};
+
+\draw [|-|] (0,0) -- (-2,0) node[pos=0.4, above] {$1$};
+\draw [|-|] (0.64719,0) -- (2.53958,0) node[pos=0.35, above] {$\sqrt{1-\epsilon}$};
+\draw[thick]  (0.64719,0) ellipse (1.8924 and 1.8924);
+
+
+\end{tikzpicture}
+\end{center}
+\caption{One ball shrinks.}
+\label{fig:one_ball}
+\end{figure}
+
+We start with some notation. Let $\mB(x,r^2) := \{y \in \R^n : \|y-x\|^2 \leq r^2 \}$ (note that the second argument is the radius squared), and
+$$x^+ = x - \frac{1}{\beta} \nabla f(x), \ \text{and} \ x^{++} = x - \frac{1}{\alpha} \nabla f(x) . $$
+Rewriting the definition of strong convexity \eqref{eq:defstrongconv} as
+\begin{eqnarray*}
+& f(y) \geq f(x) + \nabla f(x)^{\top} (y-x) + \frac{\alpha}{2} \|y-x\|^2 \\
+& \Leftrightarrow \ \frac{\alpha}{2} \|y - x + \frac{1}{\alpha} \nabla f(x) \|^2 \leq \frac{\|\nabla f(x)\|^2}{2 \alpha} - (f(x) - f(y)),
+\end{eqnarray*}
+one obtains an enclosing ball for the minimizer of $f$ with the $0^{th}$ and $1^{st}$ order information at $x$:
+$$x^* \in \mB\left(x^{++}, \frac{\|\nabla f(x)\|^2}{\alpha^2} - \frac{2}{\alpha} (f(x) - f(x^*)) \right) .$$
+Furthermore recall that by smoothness (see \eqref{eq:onestepofgd}) one has $f(x^+) \leq f(x) - \frac{1}{2 \beta} \|\nabla f(x)\|^2$ which allows to \emph{shrink} the above ball by a factor of $1-\frac{1}{\kappa}$ and obtain the following:
+\begin{equation} \label{eq:ball2}
+x^* \in \mB\left(x^{++}, \frac{\|\nabla f(x)\|^2}{\alpha^2} \left(1 - \frac{1}{\kappa}\right) - \frac{2}{\alpha} (f(x^+) - f(x^*)) \right) 
+\end{equation}
+This suggests a natural strategy: assuming that one has an enclosing ball $A:=\mB(x,R^2)$ for $x^*$ (obtained from previous steps of the strategy), one can then enclose $x^*$ in a ball $B$ containing the intersection of $\mB(x,R^2)$ and the ball $\mB\left(x^{++}, \frac{\|\nabla f(x)\|^2}{\alpha^2} \left(1 - \frac{1}{\kappa}\right)\right)$ obtained by \eqref{eq:ball2}. Provided that the radius of $B$ is a fraction of the radius of $A$, one can then iterate the procedure by replacing $A$ by $B$, leading to a linear convergence rate. Evaluating  the rate at which the radius shrinks is an elementary calculation: for any $g \in \R^n$, $\epsilon \in (0,1)$, there exists $x \in \R^n$ such that
+$$\mB(0,1) \cap \mB(g, \|g\|^2 (1- \epsilon)) \subset \mB(x, 1-\epsilon) . \quad \quad \text{(Figure \ref{fig:one_ball})}$$
+Thus we see that in the strategy described above, the radius squared of the enclosing ball for $x^*$ shrinks by a factor $1 - \frac{1}{\kappa}$ at each iteration, thus matching the rate of convergence of gradient descent (see Theorem \ref{th:gdssc}).
+
+\subsection{Acceleration} \label{sec:accafterwarmup}
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[scale=0.7, every node/.style={transform shape}]
+
+\draw[dashed]  (0,0) ellipse (2 and 2);
+\draw  (0,0) ellipse (1.68 and 1.68);
+\draw[dashed]  (4,0) ellipse (4 and 4);
+\draw  (4,0) ellipse (3.85 and 3.85);
+%\draw [|-|] (4,0) -- (4,4) node[pos=0.5, right] {$|g|$};
+\draw [|-|] (4,0) -- (7.85,0) node[pos=0.5, above] {$\sqrt{1-\epsilon}\ |g|$};
+
+\begin{scope}
+  \clip (0,0) ellipse (1.68 and 1.68);
+  \fill[lightgray] (4,0) ellipse (3.85 and 3.85);
+\end{scope}
+
+\draw (0,0) node[cross=4pt] {};
+
+%\draw [->] (0,3) -- (0,1.68) node[pos=0, above] {radius = $\sqrt{1-\epsilon |g|^2}$};
+\draw [|-|] (0,-3) -- (-1.68,-3) node[pos=0.5, above] {$\sqrt{1-\epsilon |g|^2}$};
+\draw [|-|] (0.5,0) -- (2.1044,0) node[pos=0.3, above] {\scriptsize $\sqrt{1-\sqrt{\epsilon}}$};
+%%\draw[thick]  (0.5,0) ellipse (1.6044 and 1.6044);
+
+\draw[thick]  (0.5,0) ellipse (1.6044 and 1.6044);
+
+\end{tikzpicture}
+\end{center}
+\caption{Two balls shrink.}
+\label{fig:two_ball}
+
+\end{figure}
+
+In the argument from the previous section we missed the following opportunity: observe that the ball $A=\mB(x,R^2)$ was obtained by intersections of previous balls of the form given by \eqref{eq:ball2}, and thus the new value $f(x)$ could be used to reduce the radius of those previous balls too (an important caveat is that the value $f(x)$ should be smaller than the values used to build those previous balls). Potentially this could show that the optimum is in fact contained in the ball $\mB\left(x, R^2 - \frac{1}{\kappa} \|\nabla f(x)\|^2\right)$. By taking the intersection with the ball $\mB\left(x^{++}, \frac{\|\nabla f(x)\|^2}{\alpha^2} \left(1 - \frac{1}{\kappa}\right)\right)$ this would allow to obtain a new ball with radius shrunk by a factor $1- \frac{1}{\sqrt{\kappa}}$ (instead of $1 - \frac{1}{\kappa}$): indeed for any $g \in \R^n$, $\epsilon \in (0,1)$, there exists $x \in \R^n$ such that
+$$\mB(0,1 - \epsilon \|g\|^2) \cap \mB(g, \|g\|^2 (1- \epsilon)) \subset \mB(x, 1-\sqrt{\epsilon}) . \quad \quad \text{(Figure \ref{fig:two_ball})}$$
+Thus it only remains to deal with the caveat noted above, which we do via a line search. In turns this line search might shift the new ball \eqref{eq:ball2}, and to deal with this we shall need the following strengthening of the above set inclusion (we refer to \cite{BLS15} for a simple proof of this result):
+\begin{lemma} \label{lem:geom}
+Let $a \in \R^n$ and $\epsilon \in (0,1), g \in \R_+$. Assume that $\|a\| \geq g$. Then there exists $c \in \R^n$ such that for any $\delta \geq 0$,
+$$\mB(0,1 - \epsilon g^2 - \delta) \cap \mB(a, g^2(1-\epsilon) - \delta) \subset \mB\left(c, 1 - \sqrt{\epsilon} - \delta \right) .$$
+\end{lemma}
+
+\subsection{The geometric descent method} \label{sec:GeoDmethod}
+Let $x_0 \in \R^n$, $c_0 = x_0^{++}$, and $R_0^2 = \left(1 - \frac{1}{\kappa}\right)\frac{\|\nabla f(x_0)\|^2}{\alpha^2}$. For any $t \geq 0$ let
+$$x_{t+1} = \argmin_{x \in \left\{(1-\lambda) c_t + \lambda x_t^+, \ \lambda \in \R \right\}} f(x) ,$$
+and $c_{t+1}$ (respectively $R^2_{t+1}$) be the center (respectively the squared radius) of the ball given by (the proof of) Lemma \ref{lem:geom} which contains
+$$\mB\left(c_t, R_t^2 - \frac{\|\nabla f(x_{t+1})\|^2}{\alpha^2 \kappa}\right) \cap \mB\left(x_{t+1}^{++}, \frac{\|\nabla f(x_{t+1})\|^2}{\alpha^2} \left(1 - \frac{1}{\kappa}\right) \right).$$
+Formulas for $c_{t+1}$ and $R^2_{t+1}$ are given at the end of this section.
+
+\begin{theorem}\label{thm:main}
+For any $t \geq 0$, one has $x^* \in \mB(c_t, R_t^2)$, $R_{t+1}^2 \leq \left(1 - \frac{1}{\sqrt{\kappa}}\right) R_t^2$, and thus
+$$\|x^* - c_t\|^2 \leq \left(1 - \frac{1}{\sqrt{\kappa}}\right)^t R_0^2 .$$
+\end{theorem}
+
+\begin{proof} 
+We will prove a stronger claim by induction that for each $t\geq 0$, one has
+$$x^* \in \mB\left(c_t, R_t^2 - \frac{2}{\alpha} \left(f(x_t^+) - f(x^*)\right)\right) .$$
+The case $t=0$ follows immediately by \eqref{eq:ball2}. Let us assume that the above display is true for some $t \geq 0$. Then using $f(x_{t+1}^+) \leq f(x_{t+1}) - \frac{1}{2\beta} \|\nabla f(x_{t+1})\|^2 \leq f(x_t^+) - \frac{1}{2\beta} \|\nabla f(x_{t+1})\|^2 ,$
+one gets
+$$x^* \in \mB\left(c_t, R_t^2 - \frac{\|\nabla f(x_{t+1})\|^2}{\alpha^2 \kappa} - \frac{2}{\alpha} \left(f(x_{t+1}^+) - f(x^*)\right) \right) .$$
+Furthermore by \eqref{eq:ball2} one also has
+$$\mB\left(x_{t+1}^{++}, \frac{\|\nabla f(x_{t+1})\|^2}{\alpha^2} \left(1 - \frac{1}{\kappa}\right) - \frac{2}{\alpha} \left(f(x_{t+1}^+) - f(x^*)\right) \right).$$
+Thus it only remains to observe that the squared radius of the ball given by Lemma \ref{lem:geom} which encloses the intersection of the two above balls is smaller than $\left(1 - \frac{1}{\sqrt{\kappa}}\right) R_t^2 - \frac{2}{\alpha} (f(x_{t+1}^+) - f(x^*))$.
+We apply Lemma~\ref{lem:geom} after moving $c_t$ to the origin and scaling distances by $R_t$. We set $\epsilon =\frac{1}{\kappa}$, $g=\frac{\|\nabla f(x_{t+1})\|}{\alpha}$, $\delta=\frac{2}{\alpha}\left(f(x_{t+1}^+)-f(x^*)\right)$ and $a={x_{t+1}^{++}-c_t}$.  The line search step of the algorithm implies that $\nabla f(x_{t+1})^{\top} (x_{t+1} - c_t) = 0$ and therefore, $\|a\|=\|x_{t+1}^{++} - c_t\| \geq \|\nabla f(x_{t+1})\|/\alpha=g$ and Lemma~\ref{lem:geom} applies to give the result.
+\end{proof}
+
+One can use the following formulas for $c_{t+1}$ and $R^2_{t+1}$ (they are derived from the proof of Lemma \ref{lem:geom}). If $|\nabla f(x_{t+1})|^2 / \alpha^2 < R_t^2 / 2$ then one can tate $c_{t+1} = x_{t+1}^{++}$ and $R_{t+1}^2 = \frac{|\nabla f(x_{t+1})|^2}{\alpha^2} \left(1 - \frac{1}{\kappa}\right)$. On the other hand if $|\nabla f(x_{t+1})|^2 / \alpha^2 \geq R_t^2 / 2$ then one can tate
+\begin{eqnarray*}
+c_{t+1} & = & c_t + \frac{R_t^2 + |x_{t+1} - c_t|^2}{2 |x_{t+1}^{++} - c_t|^2} (x_{t+1}^{++} - c_t) , \\
+R_{t+1}^2 & = & R_t^2 - \frac{|\nabla f(x_{t+1})|^2}{\alpha^2 \kappa} - \left( \frac{R_t^2 + \|x_{t+1} - c_t\|^2}{2 \|x_{t+1}^{++} - c_t\|}  \right)^2.
+\end{eqnarray*}
+
+\section{Nesterov's accelerated gradient descent} \label{sec:AGD}
+%So far our results leave a gap in the case of smooth optimization: gradient descent achieves an oracle complexity of $O(1/\epsilon)$ (respectively $O(\kappa \log(1/\epsilon))$ in the strongly convex case) while we proved a lower bound of $\Omega(1/\sqrt{\epsilon})$ (respectively $\Omega(\sqrt{\kappa} \log(1/\epsilon))$). In this section we close these two gaps and we show that both lower bounds are attainable. To do this we describe a beautiful method known as Nesterov's Accelerated Gradient Descent and first published in \cite{Nes83}. 
+
+%For sake of simplicity we restrict our attention to the unconstrained case, though everything can be extended to the constrained situation using ideas described in previous sections.
+
+We describe here the original Nesterov's method which attains the optimal oracle complexity for smooth convex optimization. We give the details of the method both for the strongly convex and non-strongly convex case. We refer to \cite{SBC14} for a recent interpretation of the method in terms of differential equations, and to \cite{AO14} for its relation to mirror descent (see Chapter \ref{mirror}).
+
+%As we explained in Section \ref{sec:GeoD}, if one knows the target accuracy $\epsilon$, or alternatively the number of oracle queries allowed, then it suffices to consider the strongly %convex case. 
+
+\subsection{The smooth and strongly convex case}
+%We start by describing Nesterov's Accelerated Gradient Descent in the context of smooth and strongly convex optimization. This method will achieve an oracle complexity of $O(\sqrt{\kappa} \log(1/\epsilon))$, thus reducing the complexity of the basic gradient descent by a factor $\sqrt{\kappa}$. We note that this improvement is quite relevant for Machine Learning applications. Indeed consider for example the logistic regression problem described in Section \ref{sec:mlapps}: this is a smooth and strongly convex problem, with a smoothness of order of a numerical constant, but with strong convexity equal to the regularization parameter whose inverse can be as large as the sample size. Thus in this case $\kappa$ can be of order of the sample size, and a faster rate by a factor of $\sqrt{\kappa}$ is quite significant.
+
+Nesterov's accelerated gradient descent, illustrated in Figure \ref{fig:nesterovacc}, can be described as follows: Start at an arbitrary initial point 
+$x_1 = y_1$ and then iterate the following equations for $t \geq 1$,
+\begin{eqnarray*}
+y_{t+1} & = & x_t  - \frac{1}{\beta} \nabla f(x_t) , \\
+x_{t+1} & = & \left(1 + \frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1} \right) y_{t+1} - \frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1} y_t .
+\end{eqnarray*}
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+\node [tokens=1] (noeud1) at (0.5,1) [label=below right:{$x_s$}] {};
+\node [tokens=1] (noeud2) at (1.5,-1) [label=below right:{$y_{s}$}] {};
+\node [tokens=1] (noeud3) at (2.5,2) [label=below right:{$y_{s+1}$}] {};
+\node [tokens=1] (noeud4) at (2.8,3) [label=above left:{$x_{s+1}$}] {};
+\draw[->, thick] (noeud1) -- (noeud3) node[midway, left] {$-\frac{1}{\beta}\nabla f(x_s)$};
+\draw[thick, dashed] (noeud2) -- (noeud4) {};
+\node [tokens=1] (noeud5) at (4.5,3.3) [label=below right:{$y_{s+2}$}] {};
+\node [tokens=1] (noeud6) at (5.3,3.8) [label=right:{$x_{s+2}$}] {};
+\draw[->, thick] (noeud4) -- (noeud5) {};
+\draw[thick, dashed] (noeud3) -- (noeud6) {};
+\end{tikzpicture}
+\end{center}
+\caption{Illustration of Nesterov's accelerated gradient descent.}
+\label{fig:nesterovacc}
+\end{figure}
+
+\begin{theorem}
+Let $f$ be $\alpha$-strongly convex and $\beta$-smooth, then Nesterov's accelerated gradient descent satisfies
+$$f(y_t) - f(x^*) \leq \frac{\alpha + \beta}{2} \|x_1 - x^*\|^2 \exp\left(- \frac{t-1}{\sqrt{\kappa}} \right).$$
+\end{theorem}
+
+\begin{proof}
+We define $\alpha$-strongly convex quadratic functions $\Phi_s, s \geq 1$ by induction as follows:
+\begin{align}
+& \Phi_1(x) = f(x_1) + \frac{\alpha}{2} \|x-x_1\|^2 , \notag \\
+& \Phi_{s+1}(x) = \left(1 - \frac{1}{\sqrt{\kappa}}\right) \Phi_s(x) \notag \\
+& \qquad + \frac{1}{\sqrt{\kappa}} \left(f(x_s) + \nabla f(x_s)^{\top} (x-x_s) + \frac{\alpha}{2} \|x-x_s\|^2 \right). \label{eq:AGD0}
+\end{align}
+Intuitively $\Phi_s$ becomes a finer and finer approximation (from below) to $f$ in the following sense:
+\begin{equation} \label{eq:AGD1}
+\Phi_{s+1}(x) \leq f(x) + \left(1 - \frac{1}{\sqrt{\kappa}}\right)^s (\Phi_1(x) - f(x)). 
+\end{equation}
+The above inequality can be proved immediately by induction, using the fact that by $\alpha$-strong convexity one has
+$$f(x_s) + \nabla f(x_s)^{\top} (x-x_s) + \frac{\alpha}{2} \|x-x_s\|^2 \leq f(x) .$$
+Equation \eqref{eq:AGD1} by itself does not say much, for it to be useful one needs to understand how ``far" below $f$ is $\Phi_s$. The following inequality answers this question:
+\begin{equation} \label{eq:AGD2}
+f(y_s) \leq \min_{x \in \mathbb{R}^n} \Phi_s(x) . 
+\end{equation}
+The rest of the proof is devoted to showing that \eqref{eq:AGD2} holds true, but first let us see how to combine \eqref{eq:AGD1} and \eqref{eq:AGD2} to obtain the rate given by the theorem (we use that by $\beta$-smoothness one has $f(x) - f(x^*) \leq \frac{\beta}{2} \|x-x^*\|^2$):
+\begin{eqnarray*}
+f(y_t) - f(x^*) & \leq & \Phi_t(x^*) - f(x^*) \\
+& \leq & \left(1 - \frac{1}{\sqrt{\kappa}}\right)^{t-1} (\Phi_1(x^*) - f(x^*)) \\
+& \leq & \frac{\alpha + \beta}{2} \|x_1-x^*\|^2 \left(1 - \frac{1}{\sqrt{\kappa}}\right)^{t-1} .
+\end{eqnarray*}
+We now prove \eqref{eq:AGD2} by induction (note that it is true at $s=1$ since $x_1=y_1$). Let $\Phi_s^* = \min_{x \in \mathbb{R}^n} \Phi_s(x)$. Using the definition of $y_{s+1}$ (and $\beta$-smoothness), convexity, and the induction hypothesis, one gets
+\begin{eqnarray*}
+f(y_{s+1}) & \leq & f(x_s) - \frac{1}{2 \beta} \| \nabla f(x_s) \|^2 \\
+& = & \left(1 - \frac{1}{\sqrt{\kappa}}\right) f(y_s) + \left(1 - \frac{1}{\sqrt{\kappa}}\right)(f(x_s) - f(y_s)) \\
+& & + \frac{1}{\sqrt{\kappa}} f(x_s) - \frac{1}{2 \beta} \| \nabla f(x_s) \|^2 \\
+& \leq & \left(1 - \frac{1}{\sqrt{\kappa}}\right) \Phi_s^* + \left(1 - \frac{1}{\sqrt{\kappa}}\right) \nabla f(x_s)^{\top} (x_s - y_s) \\
+& & + \frac{1}{\sqrt{\kappa}} f(x_s) - \frac{1}{2 \beta} \| \nabla f(x_s) \|^2 .
+\end{eqnarray*}
+Thus we now have to show that
+\begin{eqnarray} 
+\Phi_{s+1}^* & \geq & \left(1 - \frac{1}{\sqrt{\kappa}}\right) \Phi_s^* + \left(1 - \frac{1}{\sqrt{\kappa}}\right) \nabla f(x_s)^{\top} (x_s - y_s) \notag \\
+& & + \frac{1}{\sqrt{\kappa}} f(x_s) - \frac{1}{2 \beta} \| \nabla f(x_s) \|^2 . \label{eq:AGD3}
+\end{eqnarray}
+To prove this inequality we have to understand better the functions $\Phi_s$. First note that $\nabla^2 \Phi_s(x) = \alpha \mathrm{I}_n$ (immediate by induction) and thus $\Phi_s$ has to be of the following form:
+$$\Phi_s(x) = \Phi_s^* + \frac{\alpha}{2} \|x - v_s\|^2 ,$$
+for some $v_s \in \mathbb{R}^n$. Now observe that by differentiating \eqref{eq:AGD0} and using the above form of $\Phi_s$ one obtains
+$$\nabla \Phi_{s+1}(x) = \alpha \left(1 - \frac{1}{\sqrt{\kappa}}\right) (x-v_s) + \frac{1}{\sqrt{\kappa}} \nabla f(x_s) + \frac{\alpha}{\sqrt{\kappa}} (x-x_s) .$$
+In particular $\Phi_{s+1}$ is by definition minimized at $v_{s+1}$ which can now be defined by induction using the above identity, precisely:
+\begin{equation} \label{eq:AGD4}
+v_{s+1} = \left(1 - \frac{1}{\sqrt{\kappa}}\right) v_s + \frac{1}{\sqrt{\kappa}} x_s - \frac{1}{\alpha \sqrt{\kappa}} \nabla f(x_s) .
+\end{equation}
+Using the form of $\Phi_s$ and $\Phi_{s+1}$, as well as the original definition \eqref{eq:AGD0} one gets the following identity by evaluating $\Phi_{s+1}$ at $x_s$:
+\begin{align} 
+& \Phi_{s+1}^* + \frac{\alpha}{2} \|x_s - v_{s+1}\|^2 \notag \\
+& = \left(1 - \frac{1}{\sqrt{\kappa}}\right) \Phi_s^* + \frac{\alpha}{2} \left(1 - \frac{1}{\sqrt{\kappa}}\right) \|x_s - v_s\|^2 + \frac{1}{\sqrt{\kappa}} f(x_s) . \label{eq:AGD5}
+\end{align}
+Note that thanks to \eqref{eq:AGD4} one has
+\begin{eqnarray*}
+\|x_s - v_{s+1}\|^2 & = & \left(1 - \frac{1}{\sqrt{\kappa}}\right)^2 \|x_s - v_s\|^2 + \frac{1}{\alpha^2 \kappa} \|\nabla f(x_s)\|^2 \\
+& & - \frac{2}{\alpha \sqrt{\kappa}} \left(1 - \frac{1}{\sqrt{\kappa}}\right) \nabla f(x_s)^{\top}(v_s-x_s) ,
+\end{eqnarray*}
+which combined with \eqref{eq:AGD5} yields
+\begin{eqnarray*}
+\Phi_{s+1}^* & = & \left(1 - \frac{1}{\sqrt{\kappa}}\right) \Phi_s^* + \frac{1}{\sqrt{\kappa}} f(x_s) + \frac{\alpha}{2 \sqrt{\kappa}} \left(1 - \frac{1}{\sqrt{\kappa}}\right) \|x_s - v_s\|^2 \\
+& & \qquad - \frac{1}{2 \beta} \| \nabla f(x_s) \|^2 + \frac{1}{\sqrt{\kappa}} \left(1 - \frac{1}{\sqrt{\kappa}}\right) \nabla f(x_s)^{\top}(v_s-x_s) .
+\end{eqnarray*}
+Finally we show by induction that $v_s - x_s = \sqrt{\kappa}(x_s - y_s)$, which concludes the proof of \eqref{eq:AGD3} and thus also concludes the proof of the theorem:
+\begin{eqnarray*}
+v_{s+1} - x_{s+1} & = & \left(1 - \frac{1}{\sqrt{\kappa}}\right) v_s + \frac{1}{\sqrt{\kappa}} x_s - \frac{1}{\alpha \sqrt{\kappa}} \nabla f(x_s) - x_{s+1} \\
+& = & \sqrt{\kappa} x_s - (\sqrt{\kappa}-1) y_s - \frac{\sqrt{\kappa}}{\beta} \nabla f(x_s) - x_{s+1} \\
+& = & \sqrt{\kappa} y_{s+1} - (\sqrt{\kappa}-1) y_s - x_{s+1} \\
+& = & \sqrt{\kappa} (x_{s+1} - y_{s+1}) ,
+\end{eqnarray*}
+where the first equality comes from \eqref{eq:AGD4}, the second from the induction hypothesis, the third from the definition of $y_{s+1}$ and the last one from the definition of $x_{s+1}$.
+\end{proof}
+
+\subsection{The smooth case}
+%For $\alpha=0$ the algorithm described in the previous section reduces to a simple gradient descent. 
+In this section we show how to adapt Nesterov's accelerated gradient descent for the case $\alpha=0$, using a time-varying combination of the elements in the primary sequence $(y_t)$. First we define the following sequences:
+$$\lambda_0 = 0, \ \lambda_{t} = \frac{1 + \sqrt{1+ 4 \lambda_{t-1}^2}}{2}, \ \text{and} \  \gamma_t = \frac{1 - \lambda_t}{\lambda_{t+1}}.$$
+(Note that $\gamma_t \leq 0$.) Now the algorithm is simply defined by the following equations, with $x_1 = y_1$ an arbitrary initial point,
+\begin{eqnarray*}
+y_{t+1} & = & x_t  - \frac{1}{\beta} \nabla f(x_t) , \\
+x_{t+1} & = & (1 - \gamma_s) y_{t+1} + \gamma_t y_t .
+\end{eqnarray*}
+
+\begin{theorem}
+Let $f$ be a convex and $\beta$-smooth function, then Nesterov's accelerated gradient descent satisfies
+$$f(y_t) - f(x^*) \leq \frac{2 \beta \|x_1 - x^*\|^2}{t^2} .$$
+\end{theorem}
+
+We follow here the proof of \cite{BT09}. We also refer to \cite{Tse08} for a proof with simpler step-sizes.
+
+\begin{proof}
+Using the unconstrained version of Lemma \ref{lem:smoothconst} one obtains
+\begin{align}
+& f(y_{s+1}) - f(y_s) \notag \\
+& \leq \nabla f(x_s)^{\top} (x_s-y_s) - \frac{1}{2 \beta} \| \nabla f(x_s) \|^2 \notag \\
+& = \beta (x_s - y_{s+1})^{\top} (x_s-y_s) - \frac{\beta}{2} \| x_s - y_{s+1} \|^2 . \label{eq:1}
+\end{align}
+Similarly we also get
+\begin{equation} \label{eq:2}
+f(y_{s+1}) - f(x^*) \leq \beta (x_s - y_{s+1})^{\top} (x_s-x^*) - \frac{\beta}{2} \| x_s - y_{s+1} \|^2 .
+\end{equation}
+Now multiplying \eqref{eq:1} by $(\lambda_{s}-1)$ and adding the result to \eqref{eq:2}, one obtains with $\delta_s = f(y_s) - f(x^*)$,
+\begin{align*}
+& \lambda_{s} \delta_{s+1} - (\lambda_{s} - 1) \delta_s \\
+& \leq \beta (x_s - y_{s+1})^{\top} (\lambda_{s} x_{s} - (\lambda_{s} - 1) y_s-x^*) - \frac{\beta}{2} \lambda_{s} \| x_s - y_{s+1} \|^2.
+\end{align*}
+Multiplying this inequality by $\lambda_{s}$ and using that by definition $\lambda_{s-1}^2 = \lambda_{s}^2 - \lambda_{s}$, as well as the elementary identity $2 a^{\top} b -  \|a\|^2 = \|b\|^2 - \|b-a\|^2$, one obtains
+\begin{align}
+& \lambda_{s}^2 \delta_{s+1} - \lambda_{s-1}^2 \delta_s \notag \\
+& \leq \frac{\beta}{2} \bigg( 2 \lambda_{s} (x_s - y_{s+1})^{\top} (\lambda_{s} x_{s} - (\lambda_{s} - 1) y_s-x^*) - \|\lambda_{s}( y_{s+1} - x_s  )\|^2\bigg) \notag \\
+& = \frac{\beta}{2} \bigg(\| \lambda_{s} x_{s} - (\lambda_{s} - 1) y_{s}-x^* \|^2 - \| \lambda_{s} y_{s+1} - (\lambda_{s} - 1) y_{s}-x^* \|^2 \bigg). \label{eq:3}
+\end{align}
+Next remark that, by definition, one has 
+\begin{align}
+& x_{s+1} = y_{s+1} + \gamma_s (y_s - y_{s+1}) \notag \\
+& \Leftrightarrow \lambda_{s+1} x_{s+1} = \lambda_{s+1} y_{s+1} + (1-\lambda_{s})(y_s - y_{s+1}) \notag \\
+& \Leftrightarrow \lambda_{s+1} x_{s+1} - (\lambda_{s+1} - 1) y_{s+1}= \lambda_{s} y_{s+1} - (\lambda_{s}-1) y_{s} . \label{eq:5}
+\end{align}
+Putting together \eqref{eq:3} and \eqref{eq:5} one gets with $u_s = \lambda_{s} x_{s} - (\lambda_{s} - 1) y_{s} - x^*$,
+$$\lambda_{s}^2 \delta_{s+1} - \lambda_{s-1}^2 \delta_s^2 \leq \frac{\beta}{2} \bigg(\|u_s\|^2 - \|u_{s+1}\|^2 \bigg) .$$
+Summing these inequalities from $s=1$ to $s=t-1$ one obtains:
+$$\delta_t \leq \frac{\beta}{2 \lambda_{t-1}^2} \|u_1\|^2.$$
+By induction it is easy to see that $\lambda_{t-1} \geq \frac{t}{2}$ which concludes the proof.
+\end{proof}

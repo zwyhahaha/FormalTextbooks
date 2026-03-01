@@ -1,0 +1,334 @@
+Let $\mathcal{X} \subset \R^n$ be a convex body (that is a compact convex set with non-empty interior), and $f : \mathcal{X} \rightarrow [-B,B]$ be a continuous and convex function. Let $r, R>0$ be such that $\mathcal{X}$ is contained in an Euclidean ball of radius $R$ (respectively it contains an Euclidean ball of radius $r$). In this chapter we give several black-box algorithms to solve 
+\begin{align*}
+& \mathrm{min.} \; f(x) \\
+& \text{s.t.} \; x \in \cX .
+\end{align*}
+As we will see these algorithms have an oracle complexity which is linear (or quadratic) in the dimension, hence the title of the chapter (in the next chapter the oracle complexity will be {\em independent} of the dimension). An interesting feature of the methods discussed here is that they only need a separation oracle for the constraint set $\cX$. In the literature such algorithms are often referred to as {\em cutting plane methods}. In particular these methods can be used to {\em find} a point $x \in \cX$ given only a separating oracle for $\cX$ (this is also known as the {\em feasibility problem}). 
+
+\section{The center of gravity method} \label{sec:gravity}
+We consider the following simple iterative algorithm\footnote{As a warm-up we assume in this section that $\cX$ is known. It should be clear from the arguments in the next section that in fact the same algorithm would work if initialized with $\cS_1 \supset \cX$.}: let $\cS_1= \cX$, and for $t \geq 1$ do the following:
+\begin{enumerate}
+\item Compute
+\begin{equation}
+c_t = \frac{1}{\mathrm{vol}(\cS_t)} \int_{x \in \cS_t} x dx .
+\end{equation}
+\item Query the first order oracle at $c_t$ and obtain $w_t \in \partial f (c_t)$. Let
+$$\cS_{t+1} = \cS_t \cap \{x \in \R^n : (x-c_t)^{\top} w_t \leq 0\} .$$
+\end{enumerate}
+If stopped after $t$ queries to the first order oracle then we use $t$ queries to a zeroth order oracle to output
+$$x_t\in \argmin_{1 \leq r \leq t} f(c_r) .$$
+This procedure is known as the {\em center of gravity method}, it was discovered independently on both sides of the Wall by \cite{Lev65} and \cite{New65}.
+
+\begin{theorem}
+%[Oracle complexity of center of gravity method] 
+\label{th:centerofgravity}
+The center of gravity method satisfies
+$$f(x_t) - \min_{x \in \mathcal{X}} f(x) \leq 2 B \left(1 - \frac1{e} \right)^{t/n} .$$
+\end{theorem}
+Before proving this result a few comments are in order. 
+
+To attain an $\epsilon$-optimal point the center of gravity method requires $O( n \log (2 B / \epsilon))$ queries to both the first and zeroth order oracles. It can be shown that this is the best one can hope for, in the sense that for $\epsilon$ small enough one needs $\Omega(n \log(1/ \epsilon))$ calls to the oracle in order to find an $\epsilon$-optimal point, see \cite{NY83} for a formal proof.
+
+The rate of convergence given by Theorem \ref{th:centerofgravity} is exponentially fast. In the optimization literature this is called a {\em linear rate} as the (estimated) error at iteration $t+1$ is linearly related to the error at iteration $t$.
+%for the following reason: the number of iterations required to attain an $\epsilon$-optimal point is proportional to $\log(1/\epsilon)$, which means that to double the number of digits in %accuracy one needs to double the number of iterations, hence the linear nature of the convergence rate.
+
+The last and most important comment concerns the computational complexity of the method. It turns out that finding the center of gravity $c_t$ is a very difficult problem by itself, and we do not have computationally efficient procedure to carry out this computation in general. In Section \ref{sec:rwmethod} we will discuss a relatively recent (compared to the 50 years old center of gravity method!) randomized algorithm to approximately compute the center of gravity. This will in turn give a randomized center of gravity method which we will describe in detail.
+
+We now turn to the proof of Theorem \ref{th:centerofgravity}. We will use the following elementary result from convex geometry:
+%The proof of this bound is based on the following result from convex geometry:
+
+\begin{lemma}[\cite{Gru60}] \label{lem:Gru60}
+Let $\cK$ be a centered convex set, i.e., $\int_{x \in \cK} x dx = 0$, then for any $w \in \R^n, w \neq 0$, one has
+$$\mathrm{Vol} \left( \cK \cap \{x \in \R^n : x^{\top} w \geq 0\} \right) \geq \frac{1}{e} \mathrm{Vol} (\cK) .$$
+\end{lemma}
+%We do not prove this lemma here as we will prove a generalization of it in Chapter \ref{rand}. 
+We now prove Theorem \ref{th:centerofgravity}.
+
+\begin{proof}
+Let $x^*$ be such that $f(x^*) = \min_{x \in \mathcal{X}} f(x)$. Since $w_t \in \partial f(c_t)$ one has
+$$f(c_t) - f(x) \leq w_t^{\top} (c_t - x) .$$
+and thus
+\begin{equation} \label{eq:centerofgravity1}
+\cS_{t} \setminus \cS_{t+1} \subset \{x \in \cX : (x-c_t)^{\top} w_t > 0\} \subset \{x \in \cX : f(x) > f(c_t)\} ,
+\end{equation}
+which clearly implies that one can never remove the optimal point from our sets in consideration, that is $x^* \in \cS_t$ for any $t$.
+Without loss of generality we can assume that we always have $w_t \neq 0$, for otherwise one would have $f(c_t) = f(x^*)$ which immediately conludes the proof. Now using that $w_t \neq 0$ for any $t$ and Lemma \ref{lem:Gru60} one clearly obtains
+$$\mathrm{vol}(\cS_{t+1}) \leq \left(1 - \frac1{e} \right)^t \mathrm{vol}(\cX) .$$
+For $\epsilon \in [0,1]$, let $\mathcal{X}_{\epsilon} = \{(1-\epsilon) x^* + \epsilon x, x \in \mathcal{X}\}$. Note that $\mathrm{vol}(\mathcal{X}_{\epsilon}) = \epsilon^n \mathrm{vol}(\mathcal{X})$. These volume computations show that for $\epsilon > \left(1 - \frac1{e} \right)^{t/n}$ one has $\mathrm{vol}(\mathcal{X}_{\epsilon}) > \mathrm{vol}(\cS_{t+1})$. In particular this implies that for $\epsilon > \left(1 - \frac1{e} \right)^{t/n}$, there must exist a time $r \in \{1,\hdots, t\}$, and $x_{\epsilon} \in \mathcal{X}_{\epsilon}$, such that $x_{\epsilon} \in \cS_{r}$ and $x_{\epsilon} \not\in \cS_{r+1}$. In particular by \eqref{eq:centerofgravity1} one has $f(c_r) < f(x_{\epsilon})$. On the other hand by convexity of $f$ one clearly has $f(x_{\epsilon}) \leq f(x^*) + 2 \epsilon B$. This concludes the proof.
+\end{proof}
+
+\section{The ellipsoid method} \label{sec:ellipsoid}
+Recall that an ellipsoid is a convex set of the form
+$$\mathcal{E} = \{x \in \R^n : (x - c)^{\top} H^{-1} (x-c) \leq 1 \} ,$$
+where $c \in \R^n$, and $H$ is a symmetric positive definite matrix. Geometrically $c$ is the center of the ellipsoid, and the semi-axes of $\cE$ are given by the eigenvectors of $H$, with lengths given by the square root of the corresponding eigenvalues.
+
+We give now a simple geometric lemma, which is at the heart of the ellipsoid method.
+\begin{lemma} \label{lem:geomellipsoid}
+Let $\mathcal{E}_0 = \{x \in \R^n : (x - c_0)^{\top} H_0^{-1} (x-c_0) \leq 1 \}$. For any $w \in \R^n$, $w \neq 0$, there exists an ellipsoid $\mathcal{E}$ such that
+\begin{equation}
+\mathcal{E} \supset \{x \in \mathcal{E}_0 : w^{\top} (x-c_0) \leq 0\} , \label{eq:ellipsoidlemma1}
+\end{equation}
+and 
+\begin{equation}
+\mathrm{vol}(\mathcal{E}) \leq \exp \left(- \frac{1}{2 n} \right) \mathrm{vol}(\mathcal{E}_0) . \label{eq:ellipsoidlemma2}
+\end{equation}
+Furthermore for $n \geq 2$ one can take $\cE = \{x \in \R^n : (x - c)^{\top} H^{-1} (x-c) \leq 1 \}$ where
+\begin{align}
+& c = c_0 - \frac{1}{n+1} \frac{H_0 w}{\sqrt{w^{\top} H_0 w}} , \label{eq:ellipsoidlemma3}\\
+& H = \frac{n^2}{n^2-1} \left(H_0 - \frac{2}{n+1} \frac{H_0 w w^{\top} H_0}{w^{\top} H_0 w} \right) . \label{eq:ellipsoidlemma4}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+For $n=1$ the result is obvious, in fact we even have $\mathrm{vol}(\mathcal{E}) \leq \frac12 \mathrm{vol}(\mathcal{E}_0) .$
+
+For $n \geq 2$ one can simply verify that the ellipsoid given by \eqref{eq:ellipsoidlemma3} and \eqref{eq:ellipsoidlemma4} satisfy the required properties \eqref{eq:ellipsoidlemma1} and \eqref{eq:ellipsoidlemma2}. Rather than bluntly doing these computations we will show how to derive \eqref{eq:ellipsoidlemma3} and \eqref{eq:ellipsoidlemma4}. As a by-product this will also show that the ellipsoid defined by \eqref{eq:ellipsoidlemma3} and \eqref{eq:ellipsoidlemma4} is the unique ellipsoid of minimal volume that satisfy \eqref{eq:ellipsoidlemma1}. Let us first focus on the case where $\mathcal{E}_0$ is the Euclidean ball $\cB = \{x \in \R^n : x^{\top} x \leq 1\}$. We momentarily assume that $w$ is a unit norm vector. 
+
+By doing a quick picture, one can see that it makes sense to look for an ellipsoid $\mathcal{E}$ that would be centered at $c= - t w$, with $t \in [0,1]$ (presumably $t$ will be small), and such that one principal direction is $w$ (with inverse squared semi-axis $a>0$), and the other principal directions are all orthogonal to $w$ (with the same inverse squared semi-axes $b>0$). In other words we are looking for $\mathcal{E}= \{x: (x - c)^{\top} H^{-1} (x-c) \leq 1 \}$ with
+$$c = - t w, \; \text{and} \; H^{-1} = a w w^{\top} + b (\mI_n - w w^{\top} ) .$$
+Now we have to express our constraints on the fact that $\mathcal{E}$ should contain the half Euclidean ball $\{x \in \cB : x^{\top} w \leq 0\}$. Since we are also looking for $\mathcal{E}$ to be as small as possible, it makes sense to ask for $\mathcal{E}$ to "touch" the Euclidean ball, both at $x = - w$, and at the equator $\partial \cB \cap w^{\perp}$. The former condition can be written as:
+$$(- w - c)^{\top} H^{-1} (- w - c) = 1 \Leftrightarrow (t-1)^2 a = 1 ,$$
+while the latter is expressed as:
+$$\forall y \in \partial \cB \cap w^{\perp}, (y - c)^{\top} H^{-1} (y - c) = 1 \Leftrightarrow b + t^2 a = 1 .$$
+As one can see from the above two equations, we are still free to choose any value for $t \in [0,1/2)$ (the fact that we need $t<1/2$ comes from $b=1 - \left(\frac{t}{t-1}\right)^2>0$). Quite naturally we take the value that minimizes the volume of the resulting ellipsoid. Note that
+%\begin{eqnarray*}
+%\frac{\mathrm{vol}(\mathcal{E})}{\mathrm{vol}(\cB)} = \frac{1}{\sqrt{a}} \left(\frac{1}{\sqrt{b}}\right)^{n-1} 
+%& = & (1-t) \left(\frac{1}{\sqrt{1 - \left(\frac{t}{1-t}\right)^2}}\right)^{n-1} \\
+%& = & \frac{1}{\sqrt{\frac{1}{(1-t)^2}\left (1 - \left(\frac{t}{1-t}\right)^2\right)^{n-1}}} \\
+%& = & \frac{1}{\sqrt{f\left(\frac{1}{1-t}\right)}} ,
+%\end{eqnarray*}
+$$\frac{\mathrm{vol}(\mathcal{E})}{\mathrm{vol}(\cB)} = \frac{1}{\sqrt{a}} \left(\frac{1}{\sqrt{b}}\right)^{n-1} 
+= \frac{1}{\sqrt{\frac{1}{(1-t)^2}\left (1 - \left(\frac{t}{1-t}\right)^2\right)^{n-1}}} \\= \frac{1}{\sqrt{f\left(\frac{1}{1-t}\right)}} ,$$
+where $f(h) = h^2 (2 h - h^2)^{n-1}$. Elementary computations show that the maximum of $f$ (on $[1,2]$) is attained at $h = 1+ \frac{1}{n}$ (which corresponds to $t=\frac{1}{n+1}$), and the value is 
+$$\left(1+\frac{1}{n}\right)^2 \left(1 - \frac{1}{n^2} \right)^{n-1} \geq \exp \left(\frac{1}{n} \right),$$
+where the lower bound follows again from elementary computations. Thus we showed that, for $\cE_0 = \cB$, \eqref{eq:ellipsoidlemma1} and \eqref{eq:ellipsoidlemma2} are satisfied with the ellipsoid given by the set of points $x$ satisfying:
+\begin{equation} \label{eq:ellipsoidlemma5}
+\left(x + \frac{w/\|w\|_2}{n+1}\right)^{\top} \left(\frac{n^2-1}{n^2} \mI_n + \frac{2(n+1)}{n^2} \frac{w w^{\top}}{\|w\|_2^2} \right) \left(x + \frac{w/\|w\|_2}{n+1} \right) \leq 1 .
+\end{equation}
+
+
+We consider now an arbitrary ellipsoid $\cE_0 = \{x \in \R^n : (x - c_0)^{\top} H_0^{-1} (x-c_0) \leq 1 \}$. Let $\Phi(x) = c_0 + H_0^{1/2} x$, then clearly $\cE_0 = \Phi(\cB)$ and $\{x : w^{\top}(x - c_0) \leq 0\} = \Phi(\{x : (H_0^{1/2} w)^{\top} x \leq 0\})$. Thus in this case the image by $\Phi$ of the ellipsoid given in \eqref{eq:ellipsoidlemma5} with $w$ replaced by $H_0^{1/2} w$ will satisfy \eqref{eq:ellipsoidlemma1} and \eqref{eq:ellipsoidlemma2}. It is easy to see that this corresponds to an ellipsoid defined by
+\begin{align}
+& c = c_0 - \frac{1}{n+1} \frac{H_0 w}{\sqrt{w^{\top} H_0 w}} , \notag \\
+& H^{-1} = \left(1 - \frac{1}{n^2}\right) H_0^{-1} + \frac{2(n+1)}{n^2} \frac{w w^{\top}}{w^{\top} H_0 w} . \label{eq:ellipsoidlemma6}
+\end{align}
+Applying Sherman-Morrison formula to \eqref{eq:ellipsoidlemma6} one can recover \eqref{eq:ellipsoidlemma4} which concludes the proof.
+\end{proof}
+
+We describe now the ellipsoid method, which only assumes a separation oracle for the constraint set $\cX$ (in particular it can be used to solve the feasibility problem mentioned at the beginning of the chapter). 
+%From a computational perspective we assume access to a separation oracle for $\cX$: given $x \in \R^n$, it outputs either that $x$ is in $\mathcal{X}$, or if $x \not\in \mathcal{X}$ then it outputs a separating hyperplane between $x$ and $\mathcal{X}$.  
+Let $\cE_0$ be the Euclidean ball of radius $R$ that contains $\cX$, and let $c_0$ be its center. Denote also $H_0=R^2 \mI_n$. For $t \geq 0$ do the following:
+\begin{enumerate}
+\item If $c_t \not\in \cX$ then call the separation oracle to obtain a separating hyperplane $w_t \in \R^n$ such that $\cX \subset \{x : (x- c_t)^{\top} w_t \leq 0\}$, otherwise call the first order oracle at $c_t$ to obtain $w_t \in \partial f (c_t)$. 
+\item Let $\cE_{t+1} = \{x : (x - c_{t+1})^{\top} H_{t+1}^{-1} (x-c_{t+1}) \leq 1 \}$ be the ellipsoid given in Lemma \ref{lem:geomellipsoid} that contains $\{x \in \mathcal{E}_t : (x- c_t)^{\top} w_t \leq 0\}$, that is
+\begin{align*}
+& c_{t+1} = c_{t} - \frac{1}{n+1} \frac{H_t w}{\sqrt{w^{\top} H_t w}} ,\\
+& H_{t+1} = \frac{n^2}{n^2-1} \left(H_t - \frac{2}{n+1} \frac{H_t w w^{\top} H_t}{w^{\top} H_t w} \right) .
+\end{align*}
+\end{enumerate}
+If stopped after $t$ iterations and if $\{c_1, \hdots, c_t\} \cap \cX \neq \emptyset$, then we use the zeroth order oracle to output
+$$x_t\in \argmin_{c \in \{c_1, \hdots, c_t\} \cap \cX} f(c_r) .$$
+The following rate of convergence can be proved with the exact same argument than for Theorem \ref{th:centerofgravity} (observe that at step $t$ one can remove a point in $\cX$ from the current ellipsoid only if $c_t \in \cX$).
+\begin{theorem}
+%[Oracle complexity of the ellipsoid method]
+For $t \geq 2n^2 \log(R/r)$ the ellipsoid method satisfies $\{c_1, \hdots, c_t\} \cap \cX \neq \emptyset$ and
+$$f(x_t) - \min_{x \in \mathcal{X}} f(x) \leq \frac{2 B R}{r} \exp\left( - \frac{t}{2 n^2}\right) .$$
+\end{theorem}
+We observe that the oracle complexity of the ellipsoid method is much worse than the one of the center gravity method, indeed the former needs $O(n^2 \log(1/\epsilon))$ calls to the oracles while the latter requires only $O(n \log(1/\epsilon))$ calls. However from a computational point of view the situation is much better: in many cases one can derive an efficient separation oracle, while the center of gravity method is basically always intractable. This is for instance the case in the context of LPs and SDPs: with the notation of Section \ref{sec:structured} the computational complexity of the separation oracle for LPs is $O(m n)$ while for SDPs it is $O(\max(m,n) n^2)$ (we use the fact that the spectral decomposition of a matrix can be done in $O(n^3)$ operations). This gives an overall complexity of $O(\max(m,n) n^3 \log(1/\epsilon))$ for LPs and $O(\max(m,n^2) n^6 \log(1/\epsilon))$ for SDPs. We note however that the ellipsoid method is almost never used in practice, essentially because the method is too rigid to exploit the potential easiness of real problems (e.g., the volume decrease given by \eqref{eq:ellipsoidlemma2} is essentially always tight).
+
+%We also note another interesting property of the ellipsoid method: it can be used to solve the {\em feasability problem} with a separation oracle, that is for a convex body $\cX$ (for which one has access to a separation oracle) either give a point $x \in \cX$ or certify that $\cX$ does not contain a ball of radius $\epsilon$.
+
+\section{Vaidya's cutting plane method}
+We focus here on the feasibility problem (it should be clear from the previous sections how to adapt the argument for optimization). We have seen that for the feasibility problem the center of gravity has a $O(n)$ oracle complexity and unclear computational complexity (see Section \ref{sec:rwmethod} for more on this), while the ellipsoid method has oracle complexity $O(n^2)$ and computational complexity $O(n^4)$. We describe here the beautiful algorithm of \cite{Vai89, Vai96} which has oracle complexity $O(n \log(n))$ and computational complexity $O(n^4)$, thus getting the best of both the center of gravity and the ellipsoid method. In fact the computational complexity can even be improved further, and the recent breakthrough \cite{LSW15} shows that it can essentially (up to logarithmic factors) be brought down to $O(n^3)$.
+
+This section, while giving a fundamental algorithm, should probably be skipped on a first reading. In particular we use several concepts from the theory of interior point methods which are described in Section \ref{sec:IPM}.
+
+\subsection{The volumetric barrier}
+Let $A \in \mathbb{R}^{m \times n}$ where the $i^{th}$ row is $a_i \in \mathbb{R}^n$, and let $b \in \mathbb{R}^m$. We consider the logarithmic barrier $F$ for the polytope $\{x \in \mathbb{R}^n : A x > b\}$ defined by
+$$F(x) = - \sum_{i=1}^m \log(a_i^{\top} x - b_i) .$$
+We also consider the volumetric barrier $v$ defined by
+$$v(x) = \frac{1}{2} \mathrm{logdet}(\nabla^2 F(x) ) .$$
+The intuition is clear: $v(x)$ is equal to the logarithm of the inverse volume of the Dikin ellipsoid (for the logarithmic barrier) at $x$. It will be useful to spell out the hessian of the logarithmic barrier:
+$$\nabla^2 F(x) = \sum_{i=1}^m \frac{a_i a_i^{\top}}{(a_i^{\top} x - b_i)^2} .$$
+Introducing the leverage score
+$$\sigma_i(x) = \frac{(\nabla^2 F(x) )^{-1}[a_i, a_i]}{(a_i^{\top} x - b_i)^2} ,$$
+one can easily verify that
+\begin{equation} \label{eq:gradvol}
+\nabla v(x) = - \sum_{i=1}^m \sigma_i(x) \frac{a_i}{a_i^{\top} x - b_i} ,
+\end{equation}
+and 
+%(using the notation $A \asymp B$ if there exists a universal constant $c>0$ such that $c B \preceq A \preceq \frac1{c} B$)
+\begin{equation} \label{eq:hessianvol}
+\nabla^2 v(x) \succeq \sum_{i=1}^m \sigma_i(x) \frac{a_i a_i^{\top}}{(a_i^{\top} x - b_i)^2} =: Q(x) .
+\end{equation}
+
+\subsection{Vaidya's algorithm}
+We fix $\epsilon \leq 0.006$ a small constant to be specified later. Vaidya's algorithm produces a sequence of pairs $(A^{(t)}, b^{(t)}) \in \mathbb{R}^{m_t \times n} \times \mathbb{R}^{m_t}$ such that the corresponding polytope contains the convex set of interest. The initial polytope defined by $(A^{(0)},b^{(0)})$ is a simplex (in particular $m_0=n+1$). For $t\geq0$ we let $x_t$ be the minimizer of the volumetric barrier $v_t$ of the polytope given by $(A^{(t)}, b^{(t)})$, and $(\sigma_i^{(t)})_{i \in [m_t]}$ the leverage scores (associated to $v_t$) at the point $x_t$. We also denote $F_t$ for the logarithmic barrier given by $(A^{(t)}, b^{(t)})$. The next polytope $(A^{(t+1)}, b^{(t+1)})$ is defined by either adding or removing a constraint to the current polytope:
+\begin{enumerate}
+\item If for some $i \in [m_t]$ one has $\sigma_i^{(t)} = \min_{j \in [m_t]} \sigma_j^{(t)} < \epsilon$, then $(A^{(t+1)}, b^{(t+1)})$ is defined by removing the $i^{th}$ row in $(A^{(t)}, b^{(t)})$ (in particular $m_{t+1} = m_t - 1$).
+\item Otherwise let $c^{(t)}$ be the vector given by the separation oracle queried at $x_t$, and $\beta^{(t)} \in \mathbb{R}$ be chosen so that 
+$$\frac{(\nabla^2 F_t(x_t) )^{-1}[c^{(t)}, c^{(t)}]}{(x_t^{\top} c^{(t)} - \beta^{(t)})^2} = \frac{1}{5} \sqrt{\epsilon} .$$
+Then we define $(A^{(t+1)}, b^{(t+1)})$ by adding to $(A^{(t)}, b^{(t)})$ the row given by $(c^{(t)}, \beta^{(t)})$ (in particular $m_{t+1} = m_t + 1$).
+\end{enumerate}
+It can be shown that the volumetric barrier is a self-concordant barrier, and thus it can be efficiently minimized with Newton's method. In fact it is enough to do {\em one step} of Newton's method on $v_t$ initialized at $x_{t-1}$, see \cite{Vai89, Vai96} for more details on this.
+
+\subsection{Analysis of Vaidya's method} \label{sec:analysis}
+The construction of Vaidya's method is based on a precise understanding of how the volumetric barrier changes when one adds or removes a constraint to the polytope. This understanding is derived in Section \ref{sec:constraintsvolumetric}. In particular we obtain the following two key inequalities: If case 1 happens at iteration $t$ then
+\begin{equation} \label{eq:analysis1}
+v_{t+1}(x_{t+1}) - v_t(x_t) \geq - \epsilon ,
+\end{equation}
+while if case 2 happens then 
+\begin{equation} \label{eq:analysis2}
+v_{t+1}(x_{t+1}) - v_t(x_t) \geq \frac{1}{20} \sqrt{\epsilon} .
+\end{equation}
+We show now how these inequalities imply that Vaidya's method stops after $O(n \log(n R/r))$ steps. First we claim that after $2t$ iterations, case 2 must have happened at least $t-1$ times. Indeed suppose that at iteration $2t-1$, case 2 has happened $t-2$ times; then $\nabla^2 F(x)$ is singular and the leverage scores are infinite, so case 2 must happen at iteration $2t$. Combining this claim with the two inequalities above we obtain:
+$$v_{2t}(x_{2t}) \geq v_0(x_0) + \frac{t-1}{20} \sqrt{\epsilon} - (t+1) \epsilon \geq \frac{t}{50} \epsilon - 1 +v_0(x_0) . $$
+The key point now is to recall that by definition one has $v(x) = - \log \mathrm{vol}(\cE(x,1))$ where $\cE(x,r) = \{y : \nabla F^2(x)[y-x,y-x] \leq r^2\}$ is the Dikin ellipsoid centered at $x$ and of radius $r$. Moreover the logarithmic barrier $F$ of a polytope with $m$ constraints is $m$-self-concordant, which implies that the polytope is included in the Dikin ellipsoid $\cE(z, 2m)$ where $z$ is the minimizer of $F$ (see [Theorem 4.2.6., \cite{Nes04}]). The volume of $\cE(z, 2m)$ is equal to $(2m)^n \exp(-v(z))$, which is thus always an upper bound on the volume of the polytope. Combining this with the above display we just proved that at iteration $2k$ the volume of the current polytope is at most
+$$\exp \left(n \log(2m_{2t}) + 1 - v_0(x_0) - \frac{t}{50} \epsilon \right) .$$
+Since $\cE(x,1)$ is always included in the polytope we have that $- v_0(x_0)$ is at most the logarithm of the volume of the initial polytope which is $O(n \log(R))$. This clearly concludes the proof as the procedure will necessarily stop when the volume is below $\exp(n \log(r))$ (we also used the trivial bound $m_t \leq n+1+t$).
+
+\subsection{Constraints and the volumetric barrier} \label{sec:constraintsvolumetric}
+We want to understand the effect on the volumetric barrier of addition/deletion of constraints to the polytope. Let $c \in \mathbb{R}^n$, $\beta \in \mathbb{R}$, and consider the logarithmic barrier $\tilde{F}$ and the volumetric barrier $\tilde{v}$ corresponding to the matrix $\tilde{A}\in \mathbb{R}^{(m+1) \times n}$ and the vector $\tilde{b} \in \mathbb{R}^{m+1}$ which are respectively the concatenation of $A$ and $c$, and the concatenation of $b$ and $\beta$. Let $x^*$ and $\tilde{x}^*$ be the minimizer of respectively $v$ and $\tilde{v}$. We recall the definition of leverage scores, for $i \in [m+1]$, where $a_{m+1}=c$ and $b_{m+1}=\beta$,
+$$\sigma_i(x) = \frac{(\nabla^2 F(x) )^{-1}[a_i, a_i]}{(a_i^{\top} x - b_i)^2}, \ \text{and} \ \tilde{\sigma}_i(x) = \frac{(\nabla^2 \tilde{F}(x) )^{-1}[a_i, a_i]}{(a_i^{\top} x - b_i)^2}.$$
+The leverage scores $\sigma_i$ and $\tilde{\sigma}_i$ are closely related:
+\begin{lemma} \label{lem:V1}
+One has for any $i \in [m+1]$,
+$$\frac{\tilde{\sigma}_{m+1}(x)}{1 - \tilde{\sigma}_{m+1}(x)} \geq \sigma_i(x) \geq \tilde{\sigma}_i(x) \geq (1-\sigma_{m+1}(x)) \sigma_i(x) .$$
+\end{lemma}
+
+\begin{proof}
+First we observe that by Sherman-Morrison's formula $(A+uv^{\top})^{-1} = A^{-1} - \frac{A^{-1} u v^{\top} A^{-1}}{1+A^{-1}[u,v]}$ one has
+\begin{equation} \label{eq:SM}
+(\nabla^2 \tilde{F}(x))^{-1} = (\nabla^2 F(x))^{-1} - \frac{(\nabla^2 F(x))^{-1} c c^{\top} (\nabla^2 F(x))^{-1}}{(c^{\top} x - \beta)^2 + (\nabla^2 F(x))^{-1}[c,c]} ,
+\end{equation}
+This immediately proves $\tilde{\sigma}_i(x) \leq \sigma_i(x)$. It also implies the inequality $\tilde{\sigma}_i(x) \geq (1-\sigma_{m+1}(x)) \sigma_i(x)$ thanks the following fact: $A - \frac{A u u^{\top} A}{1+A[u,u]} \succeq (1-A[u,u]) A$. For the last inequality we use that $A + \frac{A u u^{\top} A}{1+A[u,u]} \preceq \frac{1}{1-A[u,u]} A$ together with
+$$(\nabla^2 {F}(x))^{-1} = (\nabla^2 \tilde{F}(x))^{-1} + \frac{(\nabla^2 \tilde{F}(x))^{-1} c c^{\top} (\nabla^2 \tilde{F}(x))^{-1}}{(c^{\top} x - \beta)^2 - (\nabla^2 \tilde{F}(x))^{-1}[c,c]} .$$
+\end{proof}
+
+We now assume the following key result, which was first proven by Vaidya. To put the statement in context recall that for a self-concordant barrier $f$ the suboptimality gap $f(x) - \min f$ is intimately related to the Newton decrement $\|\nabla f(x) \|_{(\nabla^2 f(x))^{-1}}$. Vaidya's inequality gives a similar claim for the volumetric barrier. We use the version given in [Theorem 2.6, \cite{Ans98}] which has slightly better numerical constants than the original bound. Recall also the definition of $Q$ from \eqref{eq:hessianvol}.
+
+\begin{theorem} \label{th:V0}
+Let $\lambda(x) = \|\nabla v(x) \|_{Q(x)^{-1}}$ be an approximate Newton decrement, $\epsilon = \min_{i \in [m]} \sigma_i(x)$, and assume that $\lambda(x)^2 \leq \frac{2 \sqrt{\epsilon} - \epsilon}{36}$. Then
+$$v(x) - v(x^*) \leq 2 \lambda(x)^2 . $$
+\end{theorem}
+We also denote $\tilde{\lambda}$ for the approximate Newton decrement of $\tilde{v}$. The goal for the rest of the section is to prove the following theorem which gives the precise understanding of the volumetric barrier we were looking for.
+
+\begin{theorem} \label{th:V1}
+Let $\epsilon := \min_{i \in [m]} \sigma_i(x^*)$, $\delta := \sigma_{m+1}(x^*) / \sqrt{\epsilon}$ and assume that $\frac{\left(\delta \sqrt{\epsilon} + \sqrt{\delta^{3} \sqrt{\epsilon}}\right)^2}{1- \delta \sqrt{\epsilon}} < \frac{2 \sqrt{\epsilon} - \epsilon}{36}$. Then one has
+\begin{equation} \label{eq:thV11}
+\tilde{v}(\tilde{x}^*) - v(x^*) \geq \frac{1}{2} \log(1+\delta \sqrt{\epsilon}) - 2  \frac{\left(\delta \sqrt{\epsilon} + \sqrt{\delta^{3} \sqrt{\epsilon}}\right)^2}{1- \delta \sqrt{\epsilon}}  .
+\end{equation}
+On the other hand assuming that $\tilde{\sigma}_{m+1}(\tilde{x}^*) = \min_{i \in [m+1]} \tilde{\sigma}_{i}(\tilde{x}^*) =: \epsilon$ and that $\epsilon \leq 1/4$, one has 
+\begin{equation} \label{eq:thV12}
+\tilde{v}(\tilde{x}^*) - v(x^*) \leq - \frac{1}{2} \log(1 - \epsilon) + \frac{8 \epsilon^2}{(1-\epsilon)^2}.
+\end{equation}
+\end{theorem}
+
+Before going into the proof let us see briefly how Theorem \ref{th:V1} give the two inequalities stated at the beginning of Section \ref{sec:analysis}. To prove \eqref{eq:analysis2} we use \eqref{eq:thV11} with $\delta=1/5$ and $\epsilon \leq 0.006$, and we observe that in this case the right hand side of \eqref{eq:thV11} is lower bounded by $\frac{1}{20} \sqrt{\epsilon}$. On the other hand to prove \eqref{eq:analysis1} we use \eqref{eq:thV12}, and we observe that for $\epsilon \leq 0.006$ the right hand side of \eqref{eq:thV12} is upper bounded by $\epsilon$.
+
+\begin{proof}
+We start with the proof of \eqref{eq:thV11}. First observe that by factoring $(\nabla^2 F(x))^{1/2}$ on the left and on the right of $\nabla^2 \tilde{F}(x)$ one obtains
+\begin{align*}
+& \mathrm{det}(\nabla^2 \tilde{F}(x)) \\
+& = \mathrm{det}\left(\nabla^2 {F}(x) + \frac{cc^{\top}}{(c^{\top} x- \beta)^2} \right) \\
+& = \mathrm{det}(\nabla^2 {F}(x)) \mathrm{det}\left(\mathrm{I}_n + \frac{(\nabla^2 {F}(x))^{-1/2} c c^{\top} (\nabla^2 {F}(x))^{-1/2}}{(c^{\top} x- \beta)^2}\right) \\
+& = \mathrm{det}(\nabla^2 {F}(x)) (1+\sigma_{m+1}(x)) ,
+\end{align*}
+and thus
+$$\tilde{v}(x) = v(x) + \frac{1}{2} \log(1+ \sigma_{m+1}(x)) .$$
+In particular we have
+$$\tilde{v}(\tilde{x}^*) - v(x^*) = \frac{1}{2} \log(1+ \sigma_{m+1}(x^*)) - (\tilde{v}(x^*) - \tilde{v}(\tilde{x}^*)) .$$
+To bound the suboptimality gap of $x^*$ in $\tilde{v}$ we will invoke Theorem \ref{th:V0} and thus we have to upper bound the approximate Newton decrement $\tilde{\lambda}$.
+Using [\eqref{eq:V21}, Lemma \ref{lem:V2}] below one has 
+$$\tilde{\lambda} (x^*)^2 \leq \frac{\left(\sigma_{m+1}(x^*) + \sqrt{\frac{\sigma_{m+1}^3(x^*)}{\min_{i \in [m]} \sigma_i(x^*)}}\right)^2}{1-\sigma_{m+1}(x^*)} = \frac{\left(\delta \sqrt{\epsilon} + \sqrt{\delta^{3} \sqrt{\epsilon}}\right)^2}{1- \delta \sqrt{\epsilon}}  .$$
+This concludes the proof of \eqref{eq:thV11}.
+\newline
+
+We now turn to the proof of \eqref{eq:thV12}. Following the same steps as above we immediately obtain
+\begin{eqnarray*}
+\tilde{v}(\tilde{x}^*) - v(x^*) & = & \tilde{v}(\tilde{x}^*) - v(\tilde{x}^*)+v(\tilde{x}^*)- v(x^*)  \\
+& = & - \frac{1}{2} \log(1 - \tilde{\sigma}_{m+1}(\tilde{x}^*)) + v(\tilde{x}^*)- v(x^*).
+\end{eqnarray*}
+To invoke Theorem \ref{th:V0} it remains to upper bound $\lambda(\tilde{x}^*)$. Using [\eqref{eq:V22}, Lemma \ref{lem:V2}] below one has
+$$ \lambda(\tilde{x}^*) \leq \frac{2 \ \tilde{\sigma}_{m+1}(\tilde{x}^*)}{1 - \tilde{\sigma}_{m+1}(\tilde{x}^*)} .$$
+We can apply Theorem \ref{th:V0} since the assumption $\epsilon \leq 1/4$ implies that $\left(\frac{2 \epsilon}{1-\epsilon}\right)^2 \leq \frac{2 \sqrt{\epsilon} - \epsilon}{36}$. This concludes the proof of \eqref{eq:thV12}.
+\end{proof}
+
+\begin{lemma} \label{lem:V2}
+One has
+\begin{equation} \label{eq:V21}
+\sqrt{1- \sigma_{m+1}(x)} \ \tilde{\lambda} (x) \leq \|\nabla {v}(x)\|_{Q(x)^{-1}} + \sigma_{m+1}(x) + \sqrt{\frac{\sigma_{m+1}^3(x)}{\min_{i \in [m]} \sigma_i(x)}} .
+\end{equation}
+Furthermore if $\tilde{\sigma}_{m+1}(x) = \min_{i \in [m+1]} \tilde{\sigma}_{i}(x)$ then one also has
+\begin{equation} \label{eq:V22}
+\lambda(x) \leq  \|\nabla \tilde{v}(x)\|_{Q(x)^{-1}} + \frac{2 \ \tilde{\sigma}_{m+1}(x)}{1 - \tilde{\sigma}_{m+1}(x)} .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+We start with the proof of \eqref{eq:V21}. First observe that by Lemma \ref{lem:V1} one has $\tilde{Q}(x) \succeq (1-\sigma_{m+1}(x)) Q(x)$ and thus by definition of the Newton decrement
+$$\tilde{\lambda} (x) = \|\nabla \tilde{v}(x)\|_{\tilde{Q}(x)^{-1}} \leq \frac{\|\nabla \tilde{v}(x)\|_{Q(x)^{-1}}}{\sqrt{1-\sigma_{m+1}(x)}} .$$
+Next observe that (recall \eqref{eq:gradvol})
+$$ \nabla \tilde{v}(x) = \nabla v(x) + \sum_{i=1}^m ({\sigma}_i(x) - \tilde{\sigma}_i(x)) \frac{a_i}{a_i^{\top} x - b_i} - \tilde{\sigma}_{m+1}(x) \frac{c}{c^{\top} x - \beta} .$$
+We now use that $Q(x) \succeq (\min_{i \in [m]} \sigma_i(x)) \nabla^2 F(x)$ to obtain 
+$$\left \| \tilde{\sigma}_{m+1}(x) \frac{c}{c^{\top} x - \beta} \right\|_{Q(x)^{-1}}^2 \leq \frac{\tilde{\sigma}_{m+1}^2(x) \sigma_{m+1}(x)}{\min_{i \in [m]} \sigma_i(x)} .$$
+By Lemma \ref{lem:V1} one has $\tilde{\sigma}_{m+1}(x) \leq {\sigma}_{m+1}(x)$ and thus we see that it only remains to prove 
+$$\left\|\sum_{i=1}^m ({\sigma}_i(x) - \tilde{\sigma}_i(x)) \frac{a_i}{a_i^{\top}x - b_i} \right\|_{Q(x)^{-1}}^2 \leq \sigma_{m+1}^2(x) .$$
+The above inequality follows from a beautiful calculation of Vaidya (see [Lemma 12, \cite{Vai96}]), starting from the identity
+$$\sigma_i(x) - \tilde{\sigma}_i(x) = \frac{((\nabla^2 F(x))^{-1}[a_i,c])^2}{((c^{\top} x - \beta)^2 + (\nabla^2 F(x))^{-1}[c,c])(a_i^{\top} x - b_i)^2} ,$$
+which itself follows from \eqref{eq:SM}.
+\newline
+
+We now turn to the proof of \eqref{eq:V22}. Following the same steps as above we immediately obtain
+$$\lambda(x) = \|\nabla v(x)\|_{Q(x)^{-1}} \leq \|\nabla \tilde{v}(x)\|_{Q(x)^{-1}} + \sigma_{m+1}(x) + \sqrt{\frac{\tilde{\sigma}_{m+1}^2(x) \sigma_{m+1}(x)}{\min_{i \in [m]} \sigma_i(x)}} .$$
+Using Lemma \ref{lem:V1} together with the assumption $\tilde{\sigma}_{m+1}(x) = \min_{i \in [m+1]} \tilde{\sigma}_{i}(x)$ yields \eqref{eq:V22}, thus concluding the proof.
+\end{proof}
+
+\section{Conjugate gradient} \label{sec:CG}
+We conclude this chapter with the special case of unconstrained optimization of a convex quadratic function $f(x) = \frac12 x^{\top} A x - b^{\top} x$, where $A \in \R^{n \times n}$ is a positive definite matrix and $b \in \R^n$. This problem, of paramount importance in practice (it is equivalent to solving the linear system $Ax = b$), admits a simple first-order black-box procedure which attains the {\em exact} optimum $x^*$ in at most $n$ steps. This method, called the {\em conjugate gradient}, is described and analyzed below. What is written below is taken from [Chapter 5, \cite{NW06}].
+
+Let $\langle \cdot , \cdot\rangle_A$ be the inner product on $\R^n$ defined by the positive definite matrix $A$, that is $\langle x, y\rangle_A = x^{\top} A y$ (we also denote by $\|\cdot\|_A$ the corresponding norm). For sake of clarity we denote here $\langle \cdot , \cdot\rangle$ for the standard inner product in $\R^n$. Given an orthogonal set $\{p_0, \hdots, p_{n-1}\}$ for $\langle \cdot , \cdot \rangle_A$ we will minimize $f$ by sequentially minimizing it along the directions given by this orthogonal set. That is, given $x_0 \in \R^n$, for $t \geq 0$ let
+\begin{equation} \label{eq:CG1}
+x_{t+1} := \argmin_{x \in \{x_t + \lambda p_t, \ \lambda \in \R\}} f(x) .
+\end{equation}
+Equivalently one can write
+\begin{equation} \label{eq:CG2}
+x_{t+1} = x_t - \langle \nabla f(x_t) , p_t \rangle \frac{p_t}{\|p_t\|_A^2} .
+\end{equation}
+The latter identity follows by differentiating $\lambda \mapsto f(x + \lambda p_t)$, and using that $\nabla f(x) = A x - b$. We also make an observation that will be useful later, namely that $x_{t+1}$ is the minimizer of $f$ on $x_0 + \mathrm{span}\{p_0, \hdots, p_t\}$, or equivalently
+\begin{equation} \label{eq:CG3prime}
+\langle \nabla f(x_{t+1}), p_i \rangle = 0, \forall \ 0 \leq i \leq t.
+\end{equation}
+Equation \eqref{eq:CG3prime} is true by construction for $i=t$, and for $i \leq t-1$ it follows by induction, assuming \eqref{eq:CG3prime} at $t=1$ and using the following formula:
+\begin{equation} \label{eq:CG3}
+\nabla f(x_{t+1}) = \nabla f(x_{t}) - \langle \nabla f(x_{t}) , p_{t} \rangle \frac{A p_{t}}{\|p_t\|_A^2} .
+\end{equation}
+
+We now claim that $x_n = x^* = \argmin_{x \in \R^n} f(x)$. It suffices to show that $\langle x_n -x_0 , p_t \rangle_A = \langle x^*-x_0 , p_t \rangle_A$ for any $t\in \{0,\hdots,n-1\}$. Note that $x_n - x_0 = - \sum_{t=0}^{n-1} \langle \nabla f(x_t), p_t \rangle \frac{p_t}{\|p_t\|_A^2}$, and thus using that $x^* = A^{-1} b$,
+\begin{eqnarray*}
+\langle x_n -x_0 , p_t \rangle_A = - \langle \nabla f(x_t) , p_t \rangle = \langle b - A x_t , p_t \rangle & = & \langle x^* - x_t, p_t \rangle_A \\
+& = &  \langle x^* - x_0, p_t \rangle_A ,
+\end{eqnarray*}
+which concludes the proof of $x_n = x^*$.
+\newline
+
+In order to have a proper black-box method it remains to describe how to build iteratively the orthogonal set $\{p_0, \hdots, p_{n-1}\}$ based only on gradient evaluations of $f$. A natural guess to obtain a set of orthogonal directions (w.r.t. $\langle \cdot , \cdot \rangle_A$) is to take $p_0 = \nabla f(x_0)$ and for $t \geq 1$,
+\begin{equation} \label{eq:CG4}
+p_t = \nabla f(x_t) - \langle \nabla f(x_t), p_{t-1} \rangle_A \ \frac{p_{t-1}}{\|p_{t-1}\|^2_A} .
+\end{equation}
+Let us first verify by induction on $t \in [n-1]$ that for any $i \in \{0,\hdots,t-2\}$, $\langle p_t, p_{i}\rangle_A = 0$ (observe that for $i=t-1$ this is true by construction of $p_t$). Using the induction hypothesis one can see that it is enough to show $\langle \nabla f(x_t), p_i \rangle_A = 0$ for any $i \in \{0, \hdots, t-2\}$, which we prove now. First observe that by induction one easily obtains $A p_i \in \mathrm{span}\{p_0, \hdots, p_{i+1}\}$ from \eqref{eq:CG3} and \eqref{eq:CG4}. Using this fact together with $\langle \nabla f(x_t), p_i \rangle_A = \langle \nabla f(x_t), A p_i \rangle$ and \eqref{eq:CG3prime} thus concludes the proof of orthogonality of the set $\{p_0, \hdots, p_{n-1}\}$.
+
+We still have to show that \eqref{eq:CG4} can be written by making only reference to the gradients of $f$ at previous points. Recall that $x_{t+1}$ is the minimizer of $f$ on $x_0 + \mathrm{span}\{p_0, \hdots, p_t\}$, and thus given the form of $p_t$ we also have that $x_{t+1}$ is the minimizer of $f$ on $x_0 + \mathrm{span}\{\nabla f(x_0), \hdots, \nabla f(x_t)\}$ (in some sense the conjugate gradient is the {\em optimal} first order method for convex quadratic functions). In particular one has $\langle \nabla f(x_{t+1}) , \nabla f(x_t) \rangle = 0$. This fact, together with the orthogonality of the set $\{p_t\}$ and \eqref{eq:CG3}, imply that
+$$\frac{\langle \nabla f(x_{t+1}) , p_{t} \rangle_A}{\|p_t\|_A^2} = \langle \nabla f(x_{t+1}) , \frac{A p_{t}}{\|p_t\|_A^2}  \rangle = - \frac{\langle \nabla f(x_{t+1})  , \nabla f(x_{t+1}) \rangle}{\langle \nabla f(x_{t})  , p_t \rangle} .$$
+Furthermore using the definition \eqref{eq:CG4} and $\langle \nabla f(x_t) , p_{t-1} \rangle = 0$ one also has
+$$\langle \nabla f(x_t), p_t \rangle = \langle \nabla f(x_t) , \nabla f(x_t) \rangle .$$
+Thus we arrive at the following rewriting of the (linear) conjugate gradient algorithm, where we recall that $x_0$ is some fixed starting point and $p_0 = \nabla f(x_0)$,
+\begin{eqnarray}
+x_{t+1} & = & \argmin_{x \in \left\{x_t + \lambda p_t, \ \lambda \in \R \right\}} f(x) , \label{eq:CG5} \\
+p_{t+1} & = & \nabla f(x_{t+1}) + \frac{\langle \nabla f(x_{t+1})  , \nabla f(x_{t+1}) \rangle}{\langle \nabla f(x_{t})  , \nabla f(x_t) \rangle} p_t . \label{eq:CG6}
+\end{eqnarray}
+Observe that the algorithm defined by \eqref{eq:CG5} and \eqref{eq:CG6} makes sense for an arbitary convex function, in which case it is called the {\em non-linear conjugate gradient}. There are many variants of the non-linear conjugate gradient, and the above form is known as the Fletcher-–Reeves method. Another popular version in practice is the Polak-Ribi{\`e}re method which is based on the fact that for the general non-quadratic case one does not necessarily have $\langle \nabla f(x_{t+1}) , \nabla f(x_t) \rangle = 0$, and thus one replaces \eqref{eq:CG6} by
+$$p_{t+1} = \nabla f(x_{t+1}) + \frac{\langle \nabla f(x_{t+1})  - \nabla f(x_t), \nabla f(x_{t+1}) \rangle}{\langle \nabla f(x_{t})  , \nabla f(x_t) \rangle} p_t .$$
+We refer to \cite{NW06} for more details about these algorithms, as well as for advices on how to deal with the line search in \eqref{eq:CG5}.
+
+Finally we also note that the linear conjugate gradient method can often attain an approximate solution in much fewer than $n$ steps. More precisely, denoting $\kappa$ for the condition number of $A$ (that is the ratio of the largest eigenvalue to the smallest eigenvalue of $A$), one can show that linear conjugate gradient attains an $\epsilon$ optimal point in a number of iterations of order $\sqrt{\kappa} \log(1/\epsilon)$. The next chapter will demistify this convergence rate, and in particular we will see that (i) this is the optimal rate among first order methods, and (ii) there is a way to generalize this rate to non-quadratic convex functions (though the algorithm will have to be modified).

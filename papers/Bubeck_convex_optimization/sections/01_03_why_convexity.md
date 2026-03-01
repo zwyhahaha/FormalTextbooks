@@ -9,18 +9,18 @@ subsection_title: null
 section_id: '1.3'
 tex_label: ''
 theorems:
-- id: Proposition 1.5
+- id: Proposition 1.6
   label: Local minima are global minima
   tex_label: ''
-- id: Proposition 1.6
+- id: Proposition 1.7
   label: First order optimality condition
   tex_label: prop:firstorder
 lean_files:
-- id: Proposition 1.5
-  path: proofs/Bubeck_convex_optimization/Proposition15.lean
-  status: pending
 - id: Proposition 1.6
   path: proofs/Bubeck_convex_optimization/Proposition16.lean
+  status: pending
+- id: Proposition 1.7
+  path: proofs/Bubeck_convex_optimization/Proposition17.lean
   status: pending
 ---
 

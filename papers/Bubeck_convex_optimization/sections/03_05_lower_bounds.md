@@ -9,24 +9,24 @@ subsection_title: null
 section_id: '3.5'
 tex_label: sec:chap3LB
 theorems:
-- id: Theorem 3.12
-  label: ''
-  tex_label: th:lb1
 - id: Theorem 3.13
   label: ''
-  tex_label: th:lb2
+  tex_label: th:lb1
 - id: Theorem 3.14
+  label: ''
+  tex_label: th:lb2
+- id: Theorem 3.15
   label: ''
   tex_label: th:lb3
 lean_files:
-- id: Theorem 3.12
-  path: proofs/Bubeck_convex_optimization/Theorem312.lean
-  status: pending
 - id: Theorem 3.13
   path: proofs/Bubeck_convex_optimization/Theorem313.lean
   status: pending
 - id: Theorem 3.14
   path: proofs/Bubeck_convex_optimization/Theorem314.lean
+  status: pending
+- id: Theorem 3.15
+  path: proofs/Bubeck_convex_optimization/Theorem315.lean
   status: pending
 ---
 

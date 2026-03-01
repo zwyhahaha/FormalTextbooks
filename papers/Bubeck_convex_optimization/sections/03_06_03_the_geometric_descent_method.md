@@ -9,12 +9,12 @@ subsection_title: The geometric descent method
 section_id: 3.6.3
 tex_label: sec:GeoDmethod
 theorems:
-- id: Theorem 3.16
+- id: Theorem 3.17
   label: ''
   tex_label: thm:main
 lean_files:
-- id: Theorem 3.16
-  path: proofs/Bubeck_convex_optimization/Theorem316.lean
+- id: Theorem 3.17
+  path: proofs/Bubeck_convex_optimization/Theorem317.lean
   status: pending
 ---
 

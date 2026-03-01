@@ -9,12 +9,12 @@ subsection_title: Strongly convex and Lipschitz functions
 section_id: 3.4.1
 tex_label: ''
 theorems:
-- id: Theorem 3.8
+- id: Theorem 3.9
   label: ''
   tex_label: th:LJSB12
 lean_files:
-- id: Theorem 3.8
-  path: proofs/Bubeck_convex_optimization/Theorem38.lean
+- id: Theorem 3.9
+  path: proofs/Bubeck_convex_optimization/Theorem39.lean
   status: pending
 ---
 

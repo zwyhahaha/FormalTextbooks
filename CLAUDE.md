@@ -133,6 +133,17 @@ Re-runs preserve existing `lean_files` status.
 |--------|--------|---------|
 | `preprocess_tex.py` | `papers/Bubeck_convex_optimization/` | Clean TeX (pandoc if available, else light-clean fallback) |
 
+#### Inline definitions in Bubeck15
+
+Many definitions in this book are stated in running prose rather than inside a `\begin{definition}` environment, so they do **not** appear in the `index.md` or the `theorems:` front-matter of section files.
+
+**If a term used in a theorem statement is undefined**, look for it in the body of the same section file before concluding it is missing. Common patterns:
+- "We say that $f$ is *L-smooth* if ..." (italicised term followed by condition)
+- "A function is called *strongly convex* with parameter $\mu$ if ..."
+- A numbered equation that serves as the defining condition
+
+If still not found, check the section file for the preceding section (definitions often appear just before the theorem that uses them).
+
 ---
 
 ## Lean Setup

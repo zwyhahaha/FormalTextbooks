@@ -9,30 +9,30 @@ subsection_title: null
 section_id: '1.2'
 tex_label: ''
 theorems:
-- id: Theorem 1.1
+- id: Theorem 1.2
   label: Separation Theorem
   tex_label: ''
-- id: Theorem 1.2
+- id: Theorem 1.3
   label: Supporting Hyperplane Theorem
   tex_label: ''
-- id: Definition 1.3
+- id: Definition 1.4
   label: Subgradients
   tex_label: ''
-- id: Proposition 1.4
+- id: Proposition 1.5
   label: Existence of subgradients
   tex_label: prop:existencesubgradients
 lean_files:
-- id: Theorem 1.1
-  path: proofs/Bubeck_convex_optimization/Theorem11.lean
-  status: pending
 - id: Theorem 1.2
   path: proofs/Bubeck_convex_optimization/Theorem12.lean
   status: pending
-- id: Definition 1.3
-  path: proofs/Bubeck_convex_optimization/Definition13.lean
+- id: Theorem 1.3
+  path: proofs/Bubeck_convex_optimization/Theorem13.lean
   status: pending
-- id: Proposition 1.4
-  path: proofs/Bubeck_convex_optimization/Proposition14.lean
+- id: Definition 1.4
+  path: proofs/Bubeck_convex_optimization/Definition14.lean
+  status: pending
+- id: Proposition 1.5
+  path: proofs/Bubeck_convex_optimization/Proposition15.lean
   status: pending
 ---
 

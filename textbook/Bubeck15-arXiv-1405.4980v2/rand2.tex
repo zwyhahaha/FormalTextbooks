@@ -1,0 +1,376 @@
+In this chapter we explore the interplay between optimization and randomness. A key insight, going back to \cite{RM51}, is that first order methods are quite robust: the gradients do not have to be computed exactly to ensure progress towards the optimum. Indeed since these methods usually do many small steps, as long as the gradients are correct {\em on average}, the error introduced by the gradient approximations will eventually vanish. As we will see below this intuition is correct for non-smooth optimization (since the steps are indeed small) but the picture is more subtle in the case of smooth optimization (recall from Chapter \ref{dimfree} that in this case we take long steps).
+
+We introduce now the main object of this chapter: a (first order) {\em stochastic} oracle for a convex function $f : \cX \rightarrow \R$ takes as input a point $x \in \cX$ and outputs a random variable $\tg(x)$ such that $\E \ \tg(x) \in \partial f(x)$. In the case where the query point $x$ is a random variable (possibly obtained from previous queries to the oracle), one assumes that $\E \ (\tg(x) | x) \in \partial f(x)$.
+%We assume that repeated queries to this oracle yield {\em independent} random variables. 
+
+The unbiasedness assumption by itself is not enough to obtain rates of convergence, one also needs to make assumptions about the fluctuations of $\tg(x)$.  Essentially in the non-smooth case we will assume that there exists $B >0$ such that $\E \|\tg(x)\|_*^2 \leq B^2$ for all $x \in \cX$, while in the smooth case we assume that there exists $\sigma > 0$ such that  $\E \|\tg(x) - \nabla f(x)\|_*^2 \leq \sigma^2$ for all $x \in \cX$.
+
+We also note that the situation with a {\em biased} oracle is quite different, and we refer to \cite{Asp08, SLRB11} for some works in this direction.
+
+The two canonical examples of a stochastic oracle in machine learning are as follows. 
+
+Let $f(x) = \E_{\xi} \ell(x, \xi)$ where $\ell(x, \xi)$ should be interpreted as the loss of predictor $x$ on the example $\xi$. We assume that $\ell(\cdot, \xi)$ is a (differentiable\footnote{We assume differentiability only for sake of notation here.}) convex function for any $\xi$. The goal is to find a predictor with minimal expected loss, that is to minimize $f$. When queried at $x$ the stochastic oracle can draw $\xi$ from the unknown distribution and report $\nabla_x \ell(x, \xi)$. One obviously has $\E_{\xi} \nabla_x \ell(x, \xi) \in \partial f(x)$. 
+
+The second example is the one described in Section \ref{sec:mlapps}, where one wants to minimize $f(x) = \frac{1}{m} \sum_{i=1}^m f_i(x)$. In this situation a stochastic oracle can be obtained by selecting uniformly at random $I \in [m]$ and reporting $\nabla f_I(x)$.
+%The distribution of $\xi$ is unknown but one has access to an i.i.d. sample $\xi_1, \hdots, \xi_m$. Using this data set one can afford $m$ calls to the stochastic oracle as 
+
+Observe that the stochastic oracles in the two above cases are quite different. Consider the standard situation where one has access to a data set of i.i.d. samples $\xi_1, \hdots, \xi_m$. Thus in the first case, where one wants to minimize the {\em expected loss}, one is limited to $m$ queries to the oracle, that is to a {\em single pass} over the data (indeed one cannot ensure that the conditional expectations are correct if one uses twice a data point). On the contrary for the {\em empirical loss} where $f_i(x) = \ell(x, \xi_i)$ one can do as many passes as one wishes.
+
+\section{Non-smooth stochastic optimization} \label{sec:smd}
+We initiate our study with stochastic mirror descent (S-MD) which is defined as follows: $x_1 \in \argmin_{\cX \cap \cD} \Phi(x)$, and
+$$x_{t+1} = \argmin_{x \in \mathcal{X} \cap \mathcal{D}} \ \eta \tilde{g}(x_t)^{\top} x + D_{\Phi}(x,x_t) .$$
+In this case equation \eqref{eq:vfMD} rewrites
+$$\sum_{s=1}^t \tg(x_s)^{\top} (x_s - x) \leq \frac{R^2}{\eta} + \frac{\eta}{2 \rho} \sum_{s=1}^t \|\tg(x_s)\|_*^2 .$$
+This immediately yields a rate of convergence thanks to the following simple observation based on the tower rule:
+\begin{eqnarray*}
+\E f\bigg(\frac{1}{t} \sum_{s=1}^t x_s \bigg) - f(x) & \leq & \frac{1}{t} \E \sum_{s=1}^t (f(x_s) - f(x)) \\
+& \leq & \frac{1}{t} \E \sum_{s=1}^t \E(\tg(x_s) | x_s)^{\top} (x_s - x) \\
+& = & \frac{1}{t} \E \sum_{s=1}^t \tg(x_s)^{\top} (x_s - x) .
+\end{eqnarray*}
+We just proved the following theorem.
+\begin{theorem} \label{th:SMD}
+Let $\Phi$ be a mirror map $1$-strongly convex on $\mathcal{X} \cap \mathcal{D}$ with respect to $\|\cdot\|$, and
+let $R^2 = \sup_{x \in \mathcal{X} \cap \mathcal{D}} \Phi(x) - \Phi(x_1)$. Let $f$ be convex. Furthermore assume that the stochastic oracle is such that $\E \|\tg(x)\|_*^2 \leq B^2$. Then S-MD with $\eta = \frac{R}{B} \sqrt{\frac{2}{t}}$ satisfies
+$$\E f\bigg(\frac{1}{t} \sum_{s=1}^t x_s \bigg) - \min_{x \in \mathcal{X}} f(x) \leq R B \sqrt{\frac{2}{t}} .$$
+\end{theorem}
+
+Similarly, in the Euclidean and strongly convex case, one can directly generalize Theorem \ref{th:LJSB12}. Precisely we consider stochastic gradient descent (SGD), that is S-MD with $\Phi(x) = \frac12 \|x\|_2^2$, with time-varying step size $(\eta_t)_{t \geq 1}$, that is
+$$x_{t+1} = \Pi_{\cX}(x_t - \eta_t \tg(x_t)) .$$
+\begin{theorem} \label{th:sgdstrong}
+Let $f$ be $\alpha$-strongly convex, and assume that the stochastic oracle is such that $\E \|\tg(x)\|_*^2 \leq B^2$. Then SGD with $\eta_s = \frac{2}{\alpha (s+1)}$ satisfies
+$$f \left(\sum_{s=1}^t \frac{2 s}{t(t+1)} x_s \right) - f(x^*) \leq \frac{2 B^2}{\alpha (t+1)} .$$
+\end{theorem}
+
+\section{Smooth stochastic optimization and mini-batch SGD}
+In the previous section we showed that, for non-smooth optimization, there is basically no cost for having a stochastic oracle instead of an exact oracle. Unfortunately one can show (see e.g. \cite{Tsy03}) that smoothness does not bring any acceleration for a general stochastic oracle\footnote{While being true in general this statement does not say anything about specific functions/oracles. For example it was shown in \cite{BM13} that acceleration can be obtained for the square loss and the logistic loss.}. This is in sharp contrast with the exact oracle case where we showed that gradient descent attains a $1/t$ rate (instead of $1/\sqrt{t}$ for non-smooth), and this could even be improved to $1/t^2$ thanks to Nesterov's accelerated gradient descent. 
+
+The next result interpolates between the $1/\sqrt{t}$ for stochastic smooth optimization, and the $1/t$ for deterministic smooth optimization. We will use it to propose a useful modification of SGD in the smooth case. The proof is extracted from \cite{DGBSX12}.
+
+\begin{theorem} \label{th:SMDsmooth}
+Let $\Phi$ be a mirror map $1$-strongly convex on $\mathcal{X} \cap \mathcal{D}$ w.r.t. $\|\cdot\|$, and let $R^2 = \sup_{x \in \mathcal{X} \cap \mathcal{D}} \Phi(x) - \Phi(x_1)$. Let $f$ be convex and $\beta$-smooth w.r.t. $\|\cdot\|$. Furthermore assume that the stochastic oracle is such that $\E \|\nabla f(x) - \tg(x)\|_*^2 \leq \sigma^2$. Then S-MD with stepsize $\frac{1}{\beta + 1/\eta}$ and $\eta = \frac{R}{\sigma} \sqrt{\frac{2}{t}}$ satisfies
+$$\E f\bigg(\frac{1}{t} \sum_{s=1}^t x_{s+1} \bigg) - f(x^*) \leq R \sigma \sqrt{\frac{2}{t}} + \frac{\beta R^2}{t} .$$
+\end{theorem}
+
+\begin{proof}
+Using $\beta$-smoothness, Cauchy-Schwarz (with $2 ab \leq x a^2+ b^2 / x$ for any $x >0$), and the 1-strong convexity of $\Phi$, one obtains
+\begin{align*}
+& f(x_{s+1}) - f(x_s) \\
+& \leq \nabla f(x_s)^{\top} (x_{s+1} - x_s) + \frac{\beta}{2} \|x_{s+1} - x_s\|^2 \\
+& = \tg_s^{\top} (x_{s+1} - x_s) + (\nabla f(x_s) - \tg_s)^{\top} (x_{s+1} - x_s) + \frac{\beta}{2} \|x_{s+1} - x_s\|^2 \\
+& \leq \tg_s^{\top} (x_{s+1} - x_s) + \frac{\eta}{2} \|\nabla f(x_s) - \tg_s\|_*^2 + \frac12 (\beta + 1/\eta) \|x_{s+1} - x_s\|^2 \\
+& \leq \tg_s^{\top} (x_{s+1} - x_s) + \frac{\eta}{2} \|\nabla f(x_s) - \tg_s\|_*^2 + (\beta + 1/\eta) D_{\Phi}(x_{s+1}, x_s) .
+\end{align*}
+Observe that, using the same argument as to derive \eqref{eq:pourplustard1}, one has
+$$\frac{1}{\beta + 1/\eta} \tg_s^{\top} (x_{s+1} - x^*) \leq D_{\Phi} (x^*, x_s) - D_{\Phi}(x^*, x_{s+1}) - D_{\Phi}(x_{s+1}, x_s) .$$
+Thus
+\begin{align*}
+& f(x_{s+1}) \\
+ & \leq f(x_s) + \tg_s^{\top}(x^* - x_s) + (\beta + 1/\eta) \left(D_{\Phi} (x^*, x_s) - D_{\Phi}(x^*, x_{s+1})\right) \\
+& \qquad + \frac{\eta}{2} \|\nabla f(x_s) - \tg_s\|_*^2 \\
+& \leq f(x^*) + (\tg_s-\nabla f(x_s))^{\top}(x^* - x_s) \\
+& \qquad + (\beta + 1/\eta) \left(D_{\Phi} (x^*, x_s) - D_{\Phi}(x^*, x_{s+1})\right) + \frac{\eta}{2} \|\nabla f(x_s) - \tg_s\|_*^2 .
+\end{align*}
+In particular this yields
+$$\E f(x_{s+1}) - f(x^*) \leq (\beta + 1/\eta) \E \left(D_{\Phi} (x^*, x_s) - D_{\Phi}(x^*, x_{s+1})\right) + \frac{\eta \sigma^2}{2} .$$
+By summing this inequality from $s=1$ to $s=t$ one can easily conclude with the standard argument.
+\end{proof}
+
+We can now propose the following modification of SGD based on the idea of {\em mini-batches}. Let $m \in \N$, then mini-batch SGD iterates the following equation:
+$$x_{t+1} = \Pi_{\cX}\left(x_t - \frac{\eta}{m} \sum_{i=1}^m \tg_i(x_t)\right).$$
+where $\tg_i(x_t), i=1,\hdots,m$ are independent random variables (conditionally on $x_t$) obtained from repeated queries to the stochastic oracle. Assuming that $f$ is $\beta$-smooth and that the stochastic oracle is such that $\|\tg(x)\|_2 \leq B$, one can obtain a rate of convergence for mini-batch SGD with Theorem \ref{th:SMDsmooth}. Indeed one can apply this result with the modified stochastic oracle that returns $\frac{1}{m} \sum_{i=1}^m \tg_i(x)$, it satisfies
+$$\E \| \frac1{m} \sum_{i=1}^m \tg_i(x) - \nabla f(x) \|_2^2 = \frac{1}{m}\E \| \tg_1(x) - \nabla f(x) \|_2^2 \leq \frac{2 B^2}{m} .$$
+Thus one obtains that with $t$ calls to the (original) stochastic oracle, that is $t/m$ iterations of the mini-batch SGD, one has a suboptimality gap bounded by
+$$R \sqrt{\frac{2 B^2}{m}} \sqrt{\frac{2}{t/m}} + \frac{\beta R^2}{t/m} = 2 \frac{R B}{\sqrt{t}} + \frac{m \beta R^2}{t} .$$
+Thus as long as $m \leq \frac{B}{R \beta} \sqrt{t}$ one obtains, with mini-batch SGD and $t$ calls to the oracle, a point which is $3\frac{R B}{\sqrt{t}}$-optimal.
+
+Mini-batch SGD can be a better option than basic SGD in at least two situations: (i) When the computation for an iteration of mini-batch SGD can be distributed between multiple processors. Indeed a central unit can send the message to the processors that estimates of the gradient at point $x_s$ have to be computed, then each processor can work independently and send back the estimate they obtained. (ii) Even in a serial setting mini-batch SGD can sometimes be advantageous, in particular if some calculations can be re-used to compute several estimated gradients at the same point.
+
+\section{Sum of smooth and strongly convex functions}
+Let us examine in more details the main example from Section \ref{sec:mlapps}. That is one is interested in the unconstrained minimization of 
+$$f(x) = \frac1{m} \sum_{i=1}^m f_i(x) ,$$
+where $f_1, \hdots, f_m$ are $\beta$-smooth and convex functions, and $f$ is $\alpha$-strongly convex. Typically in machine learning $\alpha$ can be as small as $1/m$, while $\beta$ is of order of a constant. In other words the condition number $\kappa= \beta / \alpha$ can be as large as $\Omega(m)$. Let us now compare the basic gradient descent, that is
+$$x_{t+1} = x_t - \frac{\eta}{m} \sum_{i=1}^m \nabla f_i(x) ,$$
+to SGD
+$$x_{t+1} = x_t - \eta \nabla f_{i_t}(x) ,$$
+where $i_t$ is drawn uniformly at random in $[m]$ (independently of everything else). Theorem \ref{th:gdssc} shows that gradient descent requires $O(m \kappa \log(1/\epsilon))$ gradient computations (which can be improved to $O(m \sqrt{\kappa} \log(1/\epsilon))$ with Nesterov's accelerated gradient descent), while Theorem \ref{th:sgdstrong} shows that SGD (with appropriate averaging) requires $O(1/ (\alpha \epsilon))$ gradient computations. Thus one can obtain a low accuracy solution reasonably fast with SGD, but for high accuracy the basic gradient descent is more suitable. Can we get the best of both worlds? This question was answered positively in \cite{LRSB12} with SAG (Stochastic Averaged Gradient) and in \cite{SSZ13} with SDCA (Stochastic Dual Coordinate Ascent). These methods require only $O((m+\kappa) \log(1/\epsilon))$ gradient computations. We describe below the SVRG (Stochastic Variance Reduced Gradient descent) algorithm from \cite{JZ13} which makes the main ideas of SAG and SDCA more transparent (see also \cite{DBLJ14} for more on the relation between these different methods). We also observe that a natural question is whether one can obtain a Nesterov's accelerated version of these algorithms that would need only $O((m + \sqrt{m \kappa}) \log(1/\epsilon))$, see \cite{SSZ13b, ZX14, AB14} for recent works on this question.
+
+To obtain a linear rate of convergence one needs to make ``big steps", that is the step-size should be of order of a constant. In SGD the step-size is typically of order $1/\sqrt{t}$ because of the variance introduced by the stochastic oracle. The idea of SVRG is to ``center" the output of the stochastic oracle in order to reduce the variance. Precisely instead of feeding $\nabla f_{i}(x)$ into the gradient descent one would use $\nabla f_i(x) - \nabla f_i(y) + \nabla f(y)$ where $y$ is a centering sequence. This is a sensible idea since, when $x$ and $y$ are close to the optimum, one should have that $\nabla f_i(x) - \nabla f_i(y)$ will have a small variance, and of course $\nabla f(y)$ will also be small (note that $\nabla f_i(x)$ by itself is not necessarily small). This intuition is made formal with the following lemma.
+\begin{lemma} \label{lem:SVRG}
+Let $f_1, \hdots f_m$ be $\beta$-smooth convex functions on $\R^n$, and $i$ be a random variable uniformly distributed in $[m]$. Then
+$$\E \| \nabla f_i(x) - \nabla f_i(x^*) \|_2^2 \leq 2 \beta (f(x) - f(x^*)) .$$
+\end{lemma}
+
+\begin{proof}
+Let $g_i(x) = f_i(x) - f_i(x^*) - \nabla f_i(x^*)^{\top} (x - x^*)$. By convexity of $f_i$ one has $g_i(x) \geq 0$ for any $x$ and in particular using \eqref{eq:onestepofgd} this yields $- g_i(x) \leq - \frac{1}{2\beta} \|\nabla g_i(x)\|_2^2$ which can be equivalently written as
+$$\| \nabla f_i(x) - \nabla f_i(x^*) \|_2^2 \leq 2 \beta (f_i(x) - f_i(x^*) - \nabla f_i(x^*)^{\top} (x - x^*)) .$$
+Taking expectation with respect to $i$ and observing that $\E \nabla f_i(x^*) = \nabla f(x^*) = 0$ yields the claimed bound.
+\end{proof}
+On the other hand the computation of $\nabla f(y)$ is expensive (it requires $m$ gradient computations), and thus the centering sequence should be updated more rarely than the main sequence. These ideas lead to the following epoch-based algorithm.
+
+Let $y^{(1)} \in \R^n$ be an arbitrary initial point. For $s=1, 2 \ldots$, let $x_1^{(s)}=y^{(s)}$. For $t=1, \hdots, k$ let 
+$$x_{t+1}^{(s)} = x_t^{(s)} - \eta \left( \nabla f_{i_t^{(s)}}(x_t^{(s)}) - \nabla f_{i_t^{(s)}} (y^{(s)}) + \nabla f(y^{(s)}) \right) ,$$
+where $i_t^{(s)}$ is drawn uniformly at random (and independently of everything else) in $[m]$. Also let
+$$y^{(s+1)} = \frac1{k} \sum_{t=1}^k x_t^{(s)} .$$
+
+\begin{theorem} \label{th:SVRG}
+Let $f_1, \hdots f_m$ be $\beta$-smooth convex functions on $\R^n$ and $f$ be $\alpha$-strongly convex. Then SVRG with $\eta = \frac{1}{10\beta}$ and $k = 20 \kappa$ satisfies
+$$\E f(y^{(s+1)}) - f(x^*) \leq 0.9^s (f(y^{(1)}) - f(x^*)) .$$
+\end{theorem}
+
+\begin{proof}
+We fix a phase $s \geq 1$ and we denote by $\E$ the expectation taken with respect to $i_1^{(s)}, \hdots, i_k^{(s)}$. We show below that
+$$\E f(y^{(s+1)}) - f(x^*) =  \E f\left(\frac1{k} \sum_{t=1}^k x_t^{(s)}\right) - f(x^*)  \leq 0.9 (f(y^{(s)}) - f(x^*)) ,$$
+which clearly implies the theorem. To simplify the notation in the following we drop the dependency on $s$, that is we want to show that
+\begin{equation} \label{eq:SVRG0}
+\E f\left(\frac1{k} \sum_{t=1}^k x_t\right) - f(x^*)  \leq 0.9 (f(y) - f(x^*)) .
+\end{equation}
+We start as for the proof of Theorem \ref{th:gdssc} (analysis of gradient descent for smooth and strongly convex functions) with
+\begin{equation} \label{eq:SVRG1}
+\|x_{t+1} - x^*\|_2^2 = \|x_t - x^*\|_2^2 - 2 \eta v_t^{\top}(x_t - x^*) + \eta^2 \|v_t\|_2^2 ,
+\end{equation}
+where
+$$v_t = \nabla f_{i_t}(x_t) - \nabla f_{i_t} (y) + \nabla f(y) .$$
+Using Lemma \ref{lem:SVRG}, we upper bound $\E_{i_t} \|v_t\|_2^2$ as follows (also recall that $\E\|X-\E(X)\|_2^2 \leq \E\|X\|_2^2$, and $\E_{i_t} \nabla f_{i_t}(x^*) = 0$):
+\begin{align}
+& \E_{i_t} \|v_t\|_2^2 \notag \\
+& \leq 2 \E_{i_t} \|\nabla f_{i_t}(x_t) - \nabla f_{i_t}(x^*) \|_2^2 + 2 \E_{i_t} \|\nabla f_{i_t}(y) - \nabla f_{i_t}(x^*) - \nabla f(y) \|_2^2 \notag \\
+& \leq 2 \E_{i_t} \|\nabla f_{i_t}(x_t) - \nabla f_{i_t}(x^*) \|_2^2 + 2 \E_{i_t} \|\nabla f_{i_t}(y) - \nabla f_{i_t}(x^*) \|_2^2 \notag \\
+& \leq 4 \beta (f(x_t) - f(x^*) + f(y) - f(x^*)) . \label{eq:SVRG2}
+\end{align}
+Also observe that
+$$\E_{i_t} v_t^{\top}(x_t - x^*) = \nabla f(x_t)^{\top} (x_t - x^*) \geq f(x_t) - f(x^*) ,$$
+and thus plugging this into \eqref{eq:SVRG1} together with \eqref{eq:SVRG2} one obtains
+\begin{eqnarray*}
+\E_{i_t} \|x_{t+1} - x^*\|_2^2 & \leq & \|x_t - x^*\|_2^2 - 2 \eta (1 - 2 \beta \eta) (f(x_t) - f(x^*)) \\
+& & + 4 \beta \eta^2 (f(y) - f(x^*)) .
+\end{eqnarray*}
+Summing the above inequality over $t=1, \hdots, k$ yields
+\begin{eqnarray*} 
+\E \|x_{k+1} - x^*\|_2^2 & \leq & \|x_1 - x^*\|_2^2 - 2 \eta (1 - 2 \beta \eta) \E \sum_{t=1}^k (f(x_t) - f(x^*)) \\
+& & + 4 \beta \eta^2 k (f(y) - f(x^*)) .
+\end{eqnarray*}
+Noting that $x_1 = y$ and that by $\alpha$-strong convexity one has $f(x) - f(x^*) \geq \frac{\alpha}{2} \|x - x^*\|_2^2$, one can rearrange the above display to obtain
+$$\E f\left(\frac1{k} \sum_{t=1}^k x_t\right) - f(x^*)  \leq \left(\frac{1}{\alpha \eta (1 - 2 \beta \eta) k} + \frac{2 \beta \eta}{1- 2\beta \eta} \right) (f(y) - f(x^*)) .$$
+Using that $\eta = \frac{1}{10\beta}$ and $k = 20 \kappa$ finally yields \eqref{eq:SVRG0} which itself concludes the proof.
+\end{proof}
+
+\section{Random coordinate descent}
+We assume throughout this section that $f$ is a convex and differentiable function on $\R^n$, with a unique\footnote{Uniqueness is only assumed for sake of notation.} minimizer $x^*$. We investigate one of the simplest possible scheme to optimize $f$, the random coordinate descent (RCD) method. In the following we denote $\nabla_i f(x) = \frac{\partial f}{\partial x_i} (x)$. RCD is defined as follows, with an arbitrary initial point $x_1 \in \R^n$,
+$$x_{s+1} = x_s - \eta \nabla_{i_s} f(x) e_{i_s} ,$$
+where $i_s$ is drawn uniformly at random from $[n]$ (and independently of everything else). 
+
+One can view RCD as SGD with the specific oracle $\tg(x) = n \nabla_{I} f(x) e_I$ where $I$ is drawn uniformly at random from $[n]$. Clearly $\E \tg(x) = \nabla f(x)$, and furthermore
+$$\E \|\tg(x)\|_2^2 = \frac{1}{n}\sum_{i=1}^n \|n \nabla_{i} f(x) e_i\|_2^2 = n \|\nabla f(x)\|_2^2 .$$
+Thus using Theorem \ref{th:SMD} (with $\Phi(x) = \frac12 \|x\|_2^2$, that is S-MD being SGD) one immediately obtains the following result. 
+\begin{theorem}
+Let $f$ be convex and $L$-Lipschitz on $\R^n$, then RCD with $\eta = \frac{R}{L} \sqrt{\frac{2}{n t}}$ satisfies
+$$\E f\bigg(\frac{1}{t} \sum_{s=1}^t x_s \bigg) - \min_{x \in \mathcal{X}} f(x) \leq R L \sqrt{\frac{2 n}{t}} .$$
+\end{theorem}
+Somewhat unsurprisingly RCD requires $n$ times more iterations than gradient descent to obtain the same accuracy. In the next section, we will see that this statement can be greatly improved by taking into account directional smoothness.
+
+\subsection{RCD for coordinate-smooth optimization}
+We assume now directional smoothness for $f$, that is there exists $\beta_1, \hdots, \beta_n$ such that for any $i \in [n], x \in \R^n$ and $u \in \R$,
+$$| \nabla_i f(x+u e_i) - \nabla_i f(x) | \leq \beta_i |u| .$$
+If $f$ is twice differentiable then this is equivalent to $(\nabla^2 f(x))_{i,i} \leq \beta_i$. In particular, since the maximal eigenvalue of a matrix is upper bounded by its trace, one can see that the directional smoothness implies that $f$ is $\beta$-smooth with $\beta \leq \sum_{i=1}^n \beta_i$. We now study the following ``aggressive" RCD, where the step-sizes are of order of the inverse smoothness:
+$$x_{s+1} = x_s - \frac{1}{\beta_{i_s}} \nabla_{i_s} f(x) e_{i_s} .$$
+Furthermore we study a more general sampling distribution than uniform, precisely for $\gamma \geq 0$ we assume that $i_s$ is drawn (independently) from the distribution $p_{\gamma}$ defined by
+$$p_{\gamma}(i) = \frac{\beta_i^{\gamma}}{\sum_{j=1}^n \beta_j^{\gamma}}, i \in [n] .$$
+This algorithm was proposed in \cite{Nes12}, and we denote it by RCD($\gamma$). Observe that, up to a preprocessing step of complexity $O(n)$, one can sample from $p_{\gamma}$ in time $O(\log(n))$. 
+
+The following rate of convergence is derived in \cite{Nes12}, using the dual norms $\|\cdot\|_{[\gamma]}, \|\cdot\|_{[\gamma]}^*$ defined by
+$$\|x\|_{[\gamma]} = \sqrt{\sum_{i=1}^n \beta_i^{\gamma} x_i^2} , \;\; \text{and} \;\; \|x\|_{[\gamma]}^* = \sqrt{\sum_{i=1}^n \frac1{\beta_i^{\gamma}} x_i^2} .$$
+
+\begin{theorem} \label{th:rcdgamma}
+Let $f$ be convex and such that $u \in \R \mapsto f(x + u e_i)$ is $\beta_i$-smooth for any $i \in [n], x \in \R^n$. Then RCD($\gamma$) satisfies for $t \geq 2$,
+$$\E f(x_{t}) - f(x^*) \leq \frac{2 R_{1 - \gamma}^2(x_1) \sum_{i=1}^n \beta_i^{\gamma}}{t-1} ,$$
+where
+$$R_{1-\gamma}(x_1) = \sup_{x \in \R^n : f(x) \leq f(x_1)} \|x - x^*\|_{[1-\gamma]} .$$
+\end{theorem}
+Recall from Theorem \ref{th:gdsmooth} that in this context the basic gradient descent attains a rate of $\beta \|x_1 - x^*\|_2^2 / t$ where $\beta \leq \sum_{i=1}^n \beta_i$ (see the discussion above). Thus we see that RCD($1$) greatly improves upon gradient descent for functions where $\beta$ is of order of $\sum_{i=1}^n \beta_i$. Indeed in this case both methods attain the same accuracy after a fixed number of iterations, but the iterations of coordinate descent are potentially much cheaper than the iterations of gradient descent. 
+\begin{proof}
+By applying \eqref{eq:onestepofgd} to the $\beta_i$-smooth function $u \in \R \mapsto f(x + u e_i)$ one obtains
+$$f\left(x - \frac{1}{\beta_i} \nabla_i f(x) e_i\right) - f(x) \leq - \frac{1}{2 \beta_i} (\nabla_i f(x))^2 .$$
+We use this as follows:
+\begin{eqnarray*}
+\E_{i_s} f(x_{s+1}) - f(x_s)
+& = & \sum_{i=1}^n p_{\gamma}(i) \left(f\left(x_s - \frac{1}{\beta_i} \nabla_i f(x_s) e_i\right) - f(x_s) \right) \\
+& \leq & - \sum_{i=1}^n \frac{p_{\gamma}(i)}{2 \beta_i} (\nabla_i f(x_s))^2 \\
+& = & - \frac{1}{2 \sum_{i=1}^n \beta_i^{\gamma}} \left(\|\nabla f(x_s)\|_{[1-\gamma]}^*\right)^2 .
+\end{eqnarray*}
+Denote $\delta_s = \E f(x_s) - f(x^*)$. Observe that the above calculation can be used to show that $f(x_{s+1}) \leq f(x_s)$ and thus one has, by definition of $R_{1-\gamma}(x_1)$,
+\begin{eqnarray*} 
+\delta_s & \leq & \nabla f(x_s)^{\top} (x_s - x^*) \\
+& \leq & \|x_s - x^*\|_{[1-\gamma]} \|\nabla f(x_s)\|_{[1-\gamma]}^* \\
+& \leq & R_{1-\gamma}(x_1) \|\nabla f(x_s)\|_{[1-\gamma]}^* .
+\end{eqnarray*}
+Thus putting together the above calculations one obtains
+$$\delta_{s+1} \leq \delta_s - \frac{1}{2 R_{1 - \gamma}^2(x_1) \sum_{i=1}^n \beta_i^{\gamma} } \delta_s^2 .$$
+The proof can be concluded with similar computations than for Theorem \ref{th:gdsmooth}.
+\end{proof}
+
+We discussed above the specific case of $\gamma = 1$. Both $\gamma=0$ and $\gamma=1/2$ also have an interesting behavior, and we refer to \cite{Nes12} for more details. The latter paper also contains a discussion of high probability results and potential acceleration \`a la Nesterov. We also refer to \cite{RT12} for a discussion of RCD in a distributed setting.
+
+\subsection{RCD for smooth and strongly convex optimization}
+If in addition to directional smoothness one also assumes strong convexity, then RCD attains in fact a linear rate.
+\begin{theorem} \label{th:linearratercd}
+Let $\gamma \geq 0$. Let $f$ be $\alpha$-strongly convex w.r.t. $\|\cdot\|_{[1-\gamma]}$, and such that $u \in \R \mapsto f(x + u e_i)$ is $\beta_i$-smooth for any $i \in [n], x \in \R^n$. Let $\kappa_{\gamma} = \frac{\sum_{i=1}^n \beta_i^{\gamma}}{\alpha}$, then RCD($\gamma$) satisfies
+$$\E f(x_{t+1}) - f(x^*) \leq \left(1 - \frac1{\kappa_{\gamma}}\right)^t (f(x_1) - f(x^*)) .$$
+\end{theorem}
+We use the following elementary lemma.
+\begin{lemma} \label{lem:tittrucnes}
+Let $f$ be $\alpha$-strongly convex w.r.t. $\| \cdot\|$ on $\R^n$, then
+$$f(x) - f(x^*) \leq \frac1{2\alpha} \|\nabla f(x)\|_*^2 .$$
+\end{lemma}
+\begin{proof}
+By strong convexity, H{\"o}lder's inequality, and an elementary calculation,
+\begin{eqnarray*}
+f(x) - f(y) & \leq & \nabla f(x)^{\top} (x-y) - \frac{\alpha}{2} \|x-y\|_2^2 \\
+& \leq & \|\nabla f(x)\|_* \|x-y\| - \frac{\alpha}{2} \|x-y\|_2^2 \\
+& \leq & \frac1{2\alpha} \|\nabla f(x)\|_*^2 ,
+\end{eqnarray*}
+which concludes the proof by taking $y = x^*$.
+\end{proof}
+We can now prove Theorem \ref{th:linearratercd}.
+\begin{proof}
+In the proof of Theorem \ref{th:rcdgamma} we showed that 
+$$\delta_{s+1} \leq \delta_s - \frac{1}{2 \sum_{i=1}^n \beta_i^{\gamma}} \left(\|\nabla f(x_s)\|_{[1-\gamma]}^*\right)^2 .$$
+On the other hand Lemma \ref{lem:tittrucnes} shows that 
+$$\left(\|\nabla f(x_s)\|_{[1-\gamma]}^*\right)^2 \geq 2 \alpha \delta_s .$$
+The proof is concluded with straightforward calculations.
+\end{proof}
+
+\section{Acceleration by randomization for saddle points}
+We explore now the use of randomness for saddle point computations. That is we consider the context of Section \ref{sec:sp} with a stochastic oracle of the following form: given $z=(x,y) \in \cX \times \cY$ it outputs $\tg(z) = (\tg_{\cX}(x,y), \tg_{\cY}(x,y))$ where $\E \ (\tg_{\cX}(x,y) | x,y) \in \partial_x \phi(x,y)$, and $\E \ (\tg_{\cY}(x,y) | x,y) \in \partial_y (-\phi(x,y))$. Instead of using true subgradients as in SP-MD (see Section \ref{sec:spmd}) we use here the outputs of the stochastic oracle. We refer to the resulting algorithm as S-SP-MD (Stochastic Saddle Point Mirror Descent). Using the same reasoning than in Section \ref{sec:smd} and Section \ref{sec:spmd} one can derive the following theorem.
+\begin{theorem} \label{th:sspmd}
+Assume that the stochastic oracle is such that $\E \left(\|\tg_{\cX}(x,y)\|_{\cX}^* \right)^2 \leq B_{\cX}^2$, and $\E \left(\|\tg_{\cY}(x,y)\|_{\cY}^* \right)^2 \leq B_{\cY}^2$. Then S-SP-MD with $a= \frac{B_{\cX}}{R_{\cX}}$, $b=\frac{B_{\cY}}{R_{\cY}}$, and $\eta=\sqrt{\frac{2}{t}}$ satisfies
+$$\E \left( \max_{y \in \mathcal{Y}} \phi\left( \frac1{t} \sum_{s=1}^t x_s,y \right) - \min_{x \in \mathcal{X}} \phi\left(x, \frac1{t} \sum_{s=1}^t y_s \right) \right) \leq (R_{\cX} B_{\cX} + R_{\cY} B_{\cY}) \sqrt{\frac{2}{t}}.$$
+\end{theorem}
+Using S-SP-MD we revisit the examples of Section \ref{sec:spex2} and Section \ref{sec:spex3}. In both cases one has $\phi(x,y) = x^{\top} A y$ (with $A_i$ being the $i^{th}$ column of $A$), and thus $\nabla_x \phi(x,y) = Ay$ and $\nabla_y \phi(x,y) = A^{\top} x$.
+\newline
+
+\noindent
+\textbf{Matrix games.} Here $x \in \Delta_n$ and $y \in \Delta_m$. Thus there is a quite natural stochastic oracle:
+\begin{equation} \label{eq:oraclematrixgame}
+\tg_{\cX}(x,y) = A_I, \; \text{where} \; I \in [m] \; \text{is drawn according to} \; y \in \Delta_m ,
+\end{equation}
+and $\forall i \in [m]$,
+\begin{equation} \label{eq:oraclematrixgame2}
+\tg_{\cY}(x,y)(i) = A_i(J), \; \text{where} \; J \in [n] \; \text{is drawn according to} \; x \in \Delta_n .
+\end{equation}
+Clearly $\|\tg_{\cX}(x,y)\|_{\infty} \leq \|A\|_{\mathrm{max}}$ and $\|\tg_{\cX}(x,y)\|_{\infty} \leq \|A\|_{\mathrm{max}}$, which implies that S-SP-MD attains an $\epsilon$-optimal pair of points with $O\left(\|A\|_{\mathrm{max}}^2 \log(n+m) / \epsilon^2 \right)$ iterations. Furthermore the computational complexity of a step of S-SP-MD is dominated by drawing the indices $I$ and $J$ which takes $O(n + m)$. Thus overall the complexity of getting an $\epsilon$-optimal Nash equilibrium with S-SP-MD is $O\left(\|A\|_{\mathrm{max}}^2 (n + m) \log(n+m) / \epsilon^2  \right)$. While the dependency on $\epsilon$ is worse than for SP-MP (see Section \ref{sec:spex2}), the dependencies on the dimensions is $\tilde{O}(n+m)$ instead of $\tilde{O}(nm)$. In particular, quite astonishingly, this is {\em sublinear} in the size of the matrix $A$. The possibility of sublinear algorithms for this problem was first observed in \cite{GK95}.
+\newline
+
+\noindent
+\textbf{Linear classification.} Here $x \in \mB_{2,n}$ and $y \in \Delta_m$. Thus the stochastic oracle for the $x$-subgradient can be taken as in \eqref{eq:oraclematrixgame} but for the $y$-subgradient we modify \eqref{eq:oraclematrixgame2} as follows. For a vector $x$ we denote by $x^2$ the vector such that $x^2(i) = x(i)^2$. For all $i \in [m]$,
+$$\tg_{\cY}(x,y)(i) = \frac{\|x\|^2}{x(j)} A_i(J), \; \text{where} \; J \in [n] \; \text{is drawn according to} \; \frac{x^2}{\|x\|_2^2} \in \Delta_n .$$ 
+Note that one indeed has $\E (\tg_{\cY}(x,y)(i) | x,y) = \sum_{j=1}^n x(j) A_i(j) = (A^{\top} x)(i)$.
+Furthermore $\|\tg_{\cX}(x,y)\|_2 \leq B$, and
+$$\E (\|\tg_{\cY}(x,y)\|_{\infty}^2 | x,y) = \sum_{j=1}^n \frac{x(j)^2}{\|x\|_2^2} \max_{i \in [m]} \left(\frac{\|x\|^2}{x(j)} A_i(j)\right)^2 \leq \sum_{j=1}^n \max_{i \in [m]} A_i(j)^2 .$$
+Unfortunately this last term can be $O(n)$. However it turns out that one can do a more careful analysis of mirror descent in terms of local norms, which allows to prove that the ``local variance" is dimension-free. We refer to \cite{BC12} for more details on these local norms, and to \cite{CHW12} for the specific details in the linear classification situation.
+
+\section{Convex relaxation and randomized rounding} \label{sec:convexrelaxation}
+%Goemans and Williamson approximation algorithm
+In this section we briefly discuss the concept of convex relaxation, and the use of randomization to find approximate solutions. By now there is an enormous literature on these topics, and we refer to \cite{Bar14} for further pointers. 
+
+We study here the seminal example of $\mathrm{MAXCUT}$. This problem can be described as follows. Let $A \in \R_+^{n \times n}$ be a symmetric matrix of non-negative weights. The entry $A_{i,j}$ is interpreted as a measure of the ``dissimilarity" between point $i$ and point $j$. The goal is to find a partition of $[n]$ into two sets, $S \subset [n]$ and $S^c$, so as to maximize the total dissimilarity between the two groups: $\sum_{i \in S, j \in S^c} A_{i,j}$. Equivalently $\mathrm{MAXCUT}$ corresponds to the following optimization problem:
+\begin{equation} \label{eq:maxcut1}
+\max_{x \in \{-1,1\}^n} \frac12 \sum_{i,j =1}^n A_{i,j} (x_i - x_j)^2 .
+\end{equation}
+Viewing $A$ as the (weighted) adjacency matrix of a graph, one can rewrite \eqref{eq:maxcut1} as follows, using the graph Laplacian $L=D-A$ where $D$ is the diagonal matrix with entries $(\sum_{j=1}^n A_{i,j})_{i \in [n]}$,
+\begin{equation} \label{eq:maxcut2}
+\max_{x \in \{-1,1\}^n} x^{\top} L x .
+\end{equation}
+It turns out that this optimization problem is $\mathbf{NP}$-hard, that is the existence of a polynomial time algorithm to solve \eqref{eq:maxcut2} would prove that $\mathbf{P} = \mathbf{NP}$. The combinatorial difficulty of this problem stems from the hypercube constraint. Indeed if one replaces $\{-1,1\}^n$ by the Euclidean sphere, then one obtains an efficiently solvable problem (it is the problem of computing the maximal eigenvalue of $L$).
+
+We show now that, while \eqref{eq:maxcut2} is a difficult optimization problem, it is in fact possible to find relatively good {\em approximate} solutions by using the power of randomization. 
+Let $\zeta$ be uniformly drawn on the hypercube $\{-1,1\}^n$, then clearly
+$$\E \ \zeta^{\top} L \zeta = \sum_{i,j=1, i \neq j}^n A_{i,j} \geq \frac{1}{2} \max_{x \in \{-1,1\}^n} x^{\top} L x .$$
+This means that, on average, $\zeta$ is a $1/2$-approximate solution to \eqref{eq:maxcut2}. Furthermore it is immediate that the above expectation bound implies that, with probability at least $\epsilon$, $\zeta$ is a $(1/2-\epsilon)$-approximate solution. Thus by repeatedly sampling uniformly from the hypercube one can get arbitrarily close (with probability approaching $1$) to a $1/2$-approximation of $\mathrm{MAXCUT}$.
+
+Next we show that one can obtain an even better approximation ratio by combining the power of convex optimization and randomization. This approach was pioneered by \cite{GW95}. The Goemans-Williamson algorithm is based on the following inequality
+$$\max_{x \in \{-1,1\}^n} x^{\top} L x = \max_{x \in \{-1,1\}^n} \langle L, xx^{\top} \rangle \leq \max_{X \in \mathbb{S}_+^n, X_{i,i}=1, i \in [n]} \langle L, X \rangle .$$ 
+The right hand side in the above display is known as the {\em convex (or SDP) relaxation} of $\mathrm{MAXCUT}$. The convex relaxation is an SDP and thus one can find its solution efficiently with Interior Point Methods (see Section \ref{sec:IPM}). The following result states both the Goemans-Williamson strategy and the corresponding approximation ratio.
+
+\begin{theorem} \label{th:GW}
+Let $\Sigma$ be the solution to the SDP relaxation of $\mathrm{MAXCUT}$. Let $\xi \sim \cN(0, \Sigma)$ and $\zeta = \mathrm{sign}(\xi) \in \{-1,1\}^n$. Then
+$$\E \ \zeta^{\top} L \zeta \geq 0.878 \max_{x \in \{-1,1\}^n} x^{\top} L x .$$
+\end{theorem}
+
+The proof of this result is based on the following elementary geometric lemma.
+
+\begin{lemma} \label{lem:GW}
+Let $\xi \sim \mathcal{N}(0,\Sigma)$ with $\Sigma_{i,i}=1$ for $i \in [n]$, and $\zeta = \mathrm{sign}(\xi)$. Then
+$$\E \ \zeta_i \zeta_j = \frac{2}{\pi} \mathrm{arcsin} \left(\Sigma_{i,j}\right) .$$
+\end{lemma}
+
+\begin{proof}
+Let $V \in \R^{n \times n}$ (with $i^{th}$ row $V_i^{\top}$) be such that $\Sigma = V V^{\top}$. Note that since $\Sigma_{i,i}=1$ one has $\|V_i\|_2 = 1$ (remark also that necessarily $|\Sigma_{i,j}| \leq 1$, which will be important in the proof of Theorem \ref{th:GW}). Let $\epsilon \sim \mathcal{N}(0,\mI_n)$ be such that $\xi = V \epsilon$. Then $\zeta_i = \mathrm{sign}(V_i^{\top} \epsilon)$, and in particular
+\begin{eqnarray*}
+\E \ \zeta_i \zeta_j & = & \P(V_i^{\top} \epsilon \geq 0 \ \text{and} \ V_j^{\top} \epsilon \geq 0) + \P(V_i^{\top} \epsilon \leq 0 \ \text{and} \ V_j^{\top} \epsilon \leq 0 \\
+& & - \P(V_i^{\top} \epsilon \geq 0 \ \text{and} \ V_j^{\top} \epsilon < 0) - \P(V_i^{\top} \epsilon < 0 \ \text{and} \ V_j^{\top} \epsilon \geq 0) \\
+& = & 2 \P(V_i^{\top} \epsilon \geq 0 \ \text{and} \ V_j^{\top} \epsilon \geq 0) - 2 \P(V_i^{\top} \epsilon \geq 0 \ \text{and} \ V_j^{\top} \epsilon < 0) \\
+& = & \P(V_j^{\top} \epsilon \geq 0 | V_i^{\top} \epsilon \geq 0) - \P(V_j^{\top} \epsilon < 0 | V_i^{\top} \epsilon \geq 0) \\
+& = & 1 - 2 \P(V_j^{\top} \epsilon < 0 | V_i^{\top} \epsilon \geq 0).
+\end{eqnarray*}
+Now a quick picture shows that $\P(V_j^{\top} \epsilon < 0 | V_i^{\top} \epsilon \geq 0) = \frac{1}{\pi} \mathrm{arccos}(V_i^{\top} V_j)$ (recall that $\epsilon / \|\epsilon\|_2$ is uniform on the Euclidean sphere). Using the fact that $V_i^{\top} V_j = \Sigma_{i,j}$ and $\mathrm{arccos}(x) = \frac{\pi}{2} - \mathrm{arcsin}(x)$ conclude the proof.
+\end{proof}
+
+We can now get to the proof of Theorem \ref{th:GW}.
+
+\begin{proof}
+We shall use the following inequality:
+\begin{equation} \label{eq:dependsonL}
+1 - \frac{2}{\pi} \mathrm{arcsin}(t) \geq 0.878 (1-t), \ \forall t \in [-1,1] .
+\end{equation}
+Also remark that for $X \in \R^{n \times n}$ such that $X_{i,i}=1$, one has
+$$\langle L, X \rangle = \sum_{i,j=1}^n A_{i,j} (1 - X_{i,j}) ,$$
+and in particular for $x \in \{-1,1\}^n$, $x^{\top} L x = \sum_{i,j=1}^n A_{i,j} (1 - x_i x_j)$.
+%$$x^{\top} L x = \frac12 \sum_{i,j=1}^n A_{i,j} (x_i - x_j)^2 = \sum_{i,j=1}^n A_{i,j} (1 - x_i x_j) .$$
+Thus, using Lemma \ref{lem:GW}, and the facts that $A_{i,j} \geq 0$ and $|\Sigma_{i,j}| \leq 1$ (see the proof of Lemma \ref{lem:GW}), one has
+\begin{eqnarray*}
+\E \ \zeta^{\top} L \zeta
+& = & \sum_{i,j=1}^n A_{i,j} \left(1- \frac{2}{\pi} \mathrm{arcsin} \left(\Sigma_{i,j}\right)\right)  \\
+& \geq & 0.878 \sum_{i,j=1}^n A_{i,j} \left(1- \Sigma_{i,j}\right) \\
+& = & 0.878 \ \max_{X \in \mathbb{S}_+^n, X_{i,i}=1, i \in [n]} \langle L, X \rangle \\
+& \geq & 0.878 \max_{x \in \{-1,1\}^n} x^{\top} L x .
+\end{eqnarray*}
+\end{proof}
+
+Theorem \ref{th:GW} depends on the form of the Laplacian $L$ (insofar as \eqref{eq:dependsonL} was used). We show next a result from \cite{Nes97} that applies to any positive semi-definite matrix, at the expense of the constant of approximation. Precisely we are now interested in the following optimization problem:
+\begin{equation} \label{eq:quad}
+\max_{x \in \{-1,1\}^n} x^{\top} B x .
+\end{equation}
+The corresponding SDP relaxation is
+$$\max_{X \in \mathbb{S}_+^n, X_{i,i}=1, i \in [n]} \langle B, X \rangle .$$
+
+\begin{theorem}
+Let $\Sigma$ be the solution to the SDP relaxation of \eqref{eq:quad}. Let $\xi \sim \cN(0, \Sigma)$ and $\zeta = \mathrm{sign}(\xi) \in \{-1,1\}^n$. Then
+$$\E \ \zeta^{\top} B \zeta \geq \frac{2}{\pi} \max_{x \in \{-1,1\}^n} x^{\top} B x .$$
+\end{theorem}
+
+\begin{proof}
+Lemma \ref{lem:GW} shows that
+$$\E \ \zeta^{\top} B \zeta = \sum_{i,j=1}^n B_{i,j} \frac{2}{\pi} \mathrm{arcsin} \left(X_{i,j}\right) = \frac{2}{\pi} \langle B, \mathrm{arcsin}(X) \rangle .$$
+Thus to prove the result it is enough to show that $\langle B, \mathrm{arcsin}(\Sigma) \rangle \geq \langle B, \Sigma \rangle$, which is itself implied by $\mathrm{arcsin}(\Sigma) \succeq \Sigma$ (the implication is true since $B$ is positive semi-definite, just write the eigendecomposition). Now we prove the latter inequality via a Taylor expansion. Indeed recall that $|\Sigma_{i,j}| \leq 1$ and thus denoting by $A^{\circ \alpha}$ the matrix where the entries are raised to the power $\alpha$ one has
+$$\mathrm{arcsin}(\Sigma) = \sum_{k=0}^{+\infty} \frac{{2k \choose k}}{4^k (2k +1)} \Sigma^{\circ (2k+1)} = \Sigma + \sum_{k=1}^{+\infty} \frac{{2k \choose k}}{4^k (2k +1)} \Sigma^{\circ (2k+1)}.$$
+Finally one can conclude using the fact if $A,B \succeq 0$ then $A \circ B \succeq 0$. This can be seen by writing $A= V V^{\top}$, $B=U U^{\top}$, and thus 
+$$(A \circ B)_{i,j} = V_i^{\top} V_j U_i^{\top} U_j = \mathrm{Tr}(U_j V_j^{\top} V_i U_i^{\top}) = \langle V_i U_i^{\top}, V_j U_j^{\top} \rangle .$$ In other words $A \circ B$ is a Gram-matrix and, thus it is positive semi-definite.
+\end{proof}
+
+\section{Random walk based methods} \label{sec:rwmethod}
+Randomization naturally suggests itself in the center of gravity method (see Section \ref{sec:gravity}), as a way to circumvent the exact calculation of the center of gravity. This idea was proposed and developed in \cite{BerVem04}. We give below a condensed version of the main ideas of this paper.
+
+Assuming that one can draw independent points $X_1, \hdots, X_N$ uniformly at random from the current set $\cS_t$, one could replace $c_t$ by $\hat{c}_t = \frac{1}{N} \sum_{i=1}^N X_i$. \cite{BerVem04} proved the following generalization of Lemma \ref{lem:Gru60} for the situation where one cuts a convex set through a point close the center of gravity. Recall that a convex set $\cK$ is in isotropic position if $\E X = 0$ and $\E X X^{\top} = \mI_n$, where $X$ is a random variable drawn uniformly at random from $\cK$. Note in particular that this implies $\E \|X\|_2^2 = n$. We also say that $\cK$ is in near-isotropic position if $\frac{1}{2} \mI_n \preceq \E X X^{\top} \preceq \frac3{2} \mI_n$.
+\begin{lemma} \label{lem:BerVem04}
+Let $\cK$ be a convex set in isotropic position. Then for any $w \in \R^n, w \neq 0$, $z \in \R^n$, one has
+$$\mathrm{Vol} \left( \cK \cap \{x \in \R^n : (x-z)^{\top} w \geq 0\} \right) \geq \left(\frac{1}{e} - \|z\|_2\right) \mathrm{Vol} (\cK) .$$
+\end{lemma}
+Thus if one can ensure that $\cS_t$ is in (near) isotropic position, and $\|c_t - \hat{c}_t\|_2$ is small (say smaller than $0.1$), then the randomized center of gravity method (which replaces $c_t$ by $\hat{c}_t$) will converge at the same speed than the original center of gravity method. 
+
+Assuming that $\cS_t$ is in isotropic position one immediately obtains $\E \|c_t - \hat{c}_t\|_2^2 = \frac{n}{N}$, and thus by Chebyshev's inequality one has $\P(\|c_t - \hat{c}_t\|_2 > 0.1) \leq 100 \frac{n}{N}$. In other words with $N = O(n)$ one can ensure that the randomized center of gravity method makes progress on a constant fraction of the iterations (to ensure progress at every step one would need a larger value of $N$ because of an union bound, but this is unnecessary).
+
+Let us now consider the issue of putting $\cS_t$ in near-isotropic position. Let $\hat{\Sigma}_t = \frac1{N} \sum_{i=1}^N (X_i-\hat{c}_t) (X_i-\hat{c}_t)^{\top}$. \cite{Rud99} showed that as long as $N= \tilde{\Omega}(n)$, one has with high probability (say at least probability $1-1/n^2$) that the set $\hat{\Sigma}_t^{-1/2} (\cS_t - \hat{c}_t)$ is in near-isotropic position.
+
+Thus it only remains to explain how to sample from a near-isotropic convex set $\cK$. This is where random walk ideas come into the picture. The hit-and-run walk\footnote{Other random walks are known for this problem but hit-and-run is the one with the sharpest theoretical guarantees. Curiously we note that one of those walks is closely connected to projected gradient descent, see \cite{BEL15}.} is described as follows: at a point $x \in \cK$, let $\cL$ be a line that goes through $x$ in a direction taken uniformly at random, then move to a point chosen uniformly at random in $\cL \cap \cK$. \cite{Lov98} showed that if the starting point of the hit-and-run walk is chosen from a distribution ``close enough" to the uniform distribution on $\cK$, then after $O(n^3)$ steps the distribution of the last point is $\epsilon$ away (in total variation) from the uniform distribution on $\cK$. In the randomized center of gravity method one can obtain a good initial distribution for $\cS_t$ by using the distribution that was obtained for $\cS_{t-1}$. In order to initialize the entire process correctly we start here with $\cS_1 = [-L, L]^n \supset \cX$ (in Section \ref{sec:gravity} we used $\cS_1 = \cX$), and thus we also have to use a {\em separation oracle} at iterations where $\hat{c}_t \not\in \cX$, just like we did for the ellipsoid method (see Section \ref{sec:ellipsoid}).
+
+Wrapping up the above discussion, we showed (informally) that to attain an $\epsilon$-optimal point with the randomized center of gravity method one needs: $\tilde{O}(n)$ iterations, each iterations requires $\tilde{O}(n)$ random samples from $\cS_t$ (in order to put it in isotropic position) as well as a call to either the separation oracle or the first order oracle, and each sample costs $\tilde{O}(n^3)$ steps of the random walk. Thus overall one needs $\tilde{O}(n)$ calls to the separation oracle and the first order oracle, as well as $\tilde{O}(n^5)$ steps of the random walk.

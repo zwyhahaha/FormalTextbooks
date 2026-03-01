@@ -9,12 +9,12 @@ subsection_title: null
 section_id: '3.3'
 tex_label: sec:FW
 theorems:
-- id: Theorem 3.7
+- id: Theorem 3.8
   label: ''
   tex_label: ''
 lean_files:
-- id: Theorem 3.7
-  path: proofs/Bubeck_convex_optimization/Theorem37.lean
+- id: Theorem 3.8
+  path: proofs/Bubeck_convex_optimization/Theorem38.lean
   status: pending
 ---
 

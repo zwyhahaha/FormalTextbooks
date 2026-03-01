@@ -1,0 +1,86 @@
+\documentclass[openany]{now}
+\copyrightowner{S. Bubeck}
+ \volume{8}
+ \issue{3-4}
+ \pubyear{2015}
+ \copyrightyear{2015}
+ \isbn{978-1-60198-860-7}
+\doi{10.1561/2200000050}
+ \firstpage{231}
+ \lastpage{358} 
+
+
+\usepackage{amsmath}
+\usepackage{amssymb,amsbsy}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{dsfont}
+\usepackage{natbib}
+\usepackage{pdfsync}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows,decorations.pathmorphing,backgrounds,positioning,fit,petri,mindmap,shapes.geometric, shapes.misc}
+\tikzset{cross/.style={cross out, draw=black, minimum size=2*(#1-\pgflinewidth), inner sep=0pt, outer sep=0pt},
+%default radius will be 1pt.
+cross/.default={1pt}}
+
+\input{Commands}
+
+\title{Convex Optimization: Algorithms and Complexity}
+
+\author{S\'ebastien Bubeck \\
+Theory Group, Microsoft Research \\
+sebubeck@microsoft.com}
+
+\begin{document}
+
+\frontmatter
+
+\maketitle
+
+\tableofcontents
+
+\mainmatter
+
+\begin{abstract}
+This monograph presents the main complexity theorems in convex optimization and their corresponding algorithms.
+%main mathematical ideas in convex optimization. 
+Starting from the fundamental theory of black-box optimization, the material progresses towards recent advances in structural optimization and stochastic optimization. Our presentation of black-box optimization, strongly influenced by Nesterov's seminal book and Nemirovski's lecture notes, includes the analysis of cutting plane methods, as well as (accelerated) gradient descent schemes. We also pay special attention to non-Euclidean settings (relevant algorithms include Frank-Wolfe, mirror descent, and dual averaging) and discuss their relevance in machine learning. We provide a gentle introduction to structural optimization with FISTA (to optimize a sum of a smooth and a simple non-smooth term), saddle-point mirror prox (Nemirovski's alternative to Nesterov's smoothing), and a concise description of interior point methods. In stochastic optimization we discuss stochastic gradient descent, mini-batches, random coordinate descent, and sublinear algorithms. We also briefly touch upon convex relaxation of combinatorial problems and the use of randomness to round solutions, as well as random walks based methods.
+\end{abstract}
+
+\chapter{Introduction}
+\label{intro}
+\input{intro2}
+
+\chapter{Convex optimization in finite dimension}
+\label{finitedim}
+\input{finitedim2}
+
+\chapter{Dimension-free convex optimization}
+\label{dimfree}
+\input{dimfree2}
+
+\chapter{Almost dimension-free convex optimization in non-Euclidean spaces}
+\label{mirror}
+\input{mirror2}
+
+\chapter{Beyond the black-box model}
+\label{beyond}
+\input{beyond2}
+
+\chapter{Convex optimization and randomness}
+\label{rand}
+\input{rand2}
+
+\addcontentsline{toc}{chapter}{Acknowledgements}
+\begin{acknowledgements}
+This text grew out of lectures given at Princeton University in 2013 and 2014. I would like to thank Mike Jordan for his support in this project.
+My gratitude goes to the four reviewers, and especially the non-anonymous referee Francis Bach, whose comments have greatly helped
+%in clarifying the monograph's objective and 
+to situate this monograph in the vast optimization literature. Finally I am thankful to Philippe Rigollet for suggesting the new title (a previous version of the manuscript was titled ``Theory of Convex Optimization for Machine Learning"), and to Yin-Tat Lee for many insightful discussions about cutting-plane methods.
+\end{acknowledgements}
+
+\bibliographystyle{plainnat}
+\bibliography{newbib}
+
+\end{document}

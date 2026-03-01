@@ -9,12 +9,12 @@ subsection_title: The smooth and strongly convex case
 section_id: 3.7.1
 tex_label: ''
 theorems:
-- id: Theorem 3.17
+- id: Theorem 3.18
   label: ''
   tex_label: ''
 lean_files:
-- id: Theorem 3.17
-  path: proofs/Bubeck_convex_optimization/Theorem317.lean
+- id: Theorem 3.18
+  path: proofs/Bubeck_convex_optimization/Theorem318.lean
   status: pending
 ---
 

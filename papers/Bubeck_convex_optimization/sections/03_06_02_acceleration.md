@@ -9,12 +9,12 @@ subsection_title: Acceleration
 section_id: 3.6.2
 tex_label: sec:accafterwarmup
 theorems:
-- id: Lemma 3.15
+- id: Lemma 3.16
   label: ''
   tex_label: lem:geom
 lean_files:
-- id: Lemma 3.15
-  path: proofs/Bubeck_convex_optimization/Lemma315.lean
+- id: Lemma 3.16
+  path: proofs/Bubeck_convex_optimization/Lemma316.lean
   status: pending
 ---
 

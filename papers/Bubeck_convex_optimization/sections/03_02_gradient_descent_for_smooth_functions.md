@@ -9,24 +9,24 @@ subsection_title: null
 section_id: '3.2'
 tex_label: sec:gdsmooth
 theorems:
-- id: Theorem 3.2
+- id: Theorem 3.3
   label: ''
   tex_label: th:gdsmooth
-- id: Lemma 3.3
+- id: Lemma 3.4
   label: ''
   tex_label: lem:sand
-- id: Lemma 3.4
+- id: Lemma 3.5
   label: ''
   tex_label: lem:2
 lean_files:
-- id: Theorem 3.2
-  path: proofs/Bubeck_convex_optimization/Theorem32.lean
-  status: pending
-- id: Lemma 3.3
-  path: proofs/Bubeck_convex_optimization/Lemma33.lean
+- id: Theorem 3.3
+  path: proofs/Bubeck_convex_optimization/Theorem33.lean
   status: pending
 - id: Lemma 3.4
   path: proofs/Bubeck_convex_optimization/Lemma34.lean
+  status: pending
+- id: Lemma 3.5
+  path: proofs/Bubeck_convex_optimization/Lemma35.lean
   status: pending
 ---
 
