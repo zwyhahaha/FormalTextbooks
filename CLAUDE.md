@@ -112,6 +112,29 @@ The converted `full.md` is cached — re-runs reuse it. Delete it to force recon
 
 ---
 
+### Workflow D — TeX source → Subsections → Prove a theorem
+
+Use `scripts/preprocess_tex.py` when the TeX source is available (higher quality than PDF).
+
+```bash
+# Process all chapters
+python3 scripts/preprocess_tex.py textbook/Bubeck15-arXiv-1405.4980v2/
+
+# Or just one chapter
+python3 scripts/preprocess_tex.py textbook/Bubeck15-arXiv-1405.4980v2/ --chapter 2
+
+# Output: papers/Bubeck_convex_optimization/sections/*.md + index.md
+```
+
+Output structure mirrors Workflow C (same YAML front-matter, same index format).
+Re-runs preserve existing `lean_files` status.
+
+| Script | Output | Quality |
+|--------|--------|---------|
+| `preprocess_tex.py` | `papers/Bubeck_convex_optimization/` | Clean TeX (pandoc if available, else light-clean fallback) |
+
+---
+
 ## Lean Setup
 - Toolchain: v4.13.0 (pinned in `lean-toolchain`, required by optlib)
 - Dependencies: optlib (optimization library), mathlib4 (via optlib's dependency)
