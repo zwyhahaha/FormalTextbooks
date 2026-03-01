@@ -310,6 +310,47 @@ def write_section_files(chunks: list[dict], paper_dir: Path, book: str) -> list[
     return written
 
 
+def write_index(paper_dir: Path) -> Path:
+    """Regenerate paper_dir/index.md from all section files."""
+    sections_dir = paper_dir / "sections"
+    rows = []
+    for md_file in sorted(sections_dir.glob("*.md")):
+        text = md_file.read_text(encoding="utf-8")
+        if not text.startswith("---"):
+            continue
+        end = text.find("\n---", 3)
+        if end == -1:
+            continue
+        try:
+            fm = yaml.safe_load(text[3:end])
+        except yaml.YAMLError:
+            continue
+        section_id = fm.get("section_id", "")
+        sub_title = fm.get("subsection_title") or fm.get("section_title", "")
+        for lf in (fm.get("lean_files") or []):
+            rows.append({
+                "id": lf["id"],
+                "section_id": section_id,
+                "subsection_title": sub_title,
+                "path": lf.get("path", ""),
+                "status": lf.get("status", "pending"),
+            })
+
+    header = (
+        "# Theorem & Lemma Index\n\n"
+        "| ID | Section | Title | Lean file | Status |\n"
+        "|----|---------|-------|-----------|--------|\n"
+    )
+    rows_text = "".join(
+        f"| {r['id']} | {r['section_id']} | {r['subsection_title']} "
+        f"| {r['path']} | {r['status']} |\n"
+        for r in rows
+    )
+    index_path = paper_dir / "index.md"
+    index_path.write_text(header + rows_text, encoding="utf-8")
+    return index_path
+
+
 def _log(event: str, data: dict) -> None:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), "event": event, **data}

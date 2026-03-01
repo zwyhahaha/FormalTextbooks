@@ -227,3 +227,29 @@ def test_write_section_files_preserves_status(tmp_path):
     end = text.index("\n---", 3)
     fm = yaml.safe_load(text[3:end])
     assert fm["lean_files"][0]["status"] == "proved"  # preserved
+
+
+from preprocess_tex import write_index
+
+
+def test_write_index(tmp_path):
+    sections_dir = tmp_path / "sections"
+    sections_dir.mkdir()
+    fm = {
+        "book": "TestBook", "chapter": 1, "chapter_title": "Intro",
+        "section": 2, "section_title": "Basic convexity", "subsection": None,
+        "subsection_title": None, "section_id": "1.2", "tex_label": "",
+        "theorems": [{"id": "Proposition 1.1", "label": "Subgradients", "tex_label": ""}],
+        "lean_files": [{"id": "Proposition 1.1",
+                        "path": "proofs/TestBook/Proposition11.lean",
+                        "status": "pending"}],
+    }
+    (sections_dir / "01_02_basic_convexity.md").write_text(
+        "---\n" + yaml.dump(fm) + "---\n\nContent"
+    )
+    index_path = write_index(tmp_path)
+    assert index_path.exists()
+    text = index_path.read_text()
+    assert "Proposition 1.1" in text
+    assert "1.2" in text
+    assert "pending" in text
