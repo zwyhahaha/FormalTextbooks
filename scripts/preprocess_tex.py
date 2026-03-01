@@ -358,5 +358,72 @@ def _log(event: str, data: dict) -> None:
         f.write(json.dumps(entry) + "\n")
 
 
+def preprocess_tex(tex_dir: Path, chapter: int | None = None) -> None:
+    """Main entry point: process Bubeck15 TeX source into papers/Bubeck_convex_optimization/."""
+    tex_dir = Path(tex_dir)
+    if not tex_dir.exists():
+        raise FileNotFoundError(f"TeX directory not found: {tex_dir}")
+
+    book = "Bubeck_convex_optimization"
+    paper_dir = Path("papers") / book
+    paper_dir.mkdir(parents=True, exist_ok=True)
+    commands_tex = tex_dir / "Commands.tex"
+
+    _log("preprocess_tex_start", {"tex_dir": str(tex_dir), "book": book})
+
+    chapters_to_process = CHAPTER_FILES
+    if chapter is not None:
+        chapters_to_process = [(n, t, f) for n, t, f in CHAPTER_FILES if n == chapter]
+        if not chapters_to_process:
+            raise ValueError(f"Chapter {chapter} not found in CHAPTER_FILES")
+
+    all_chunks: list[dict] = []
+
+    for ch_num, ch_title, tex_filename in chapters_to_process:
+        tex_path = tex_dir / tex_filename
+        if not tex_path.exists():
+            print(f"[tex] WARNING: {tex_path} not found, skipping")
+            continue
+
+        print(f"[tex] Processing chapter {ch_num}: {tex_filename}")
+        tex_text = tex_path.read_text(encoding="utf-8")
+        chunks = parse_chunks(tex_text, chapter_num=ch_num, chapter_title=ch_title)
+        print(f"[tex]   {len(chunks)} chunk(s)")
+
+        counter = [0]  # shared per chapter
+        for chunk in chunks:
+            chunk["theorems"] = detect_theorems_tex(
+                chunk["body_tex"], chapter_num=ch_num, counter=counter
+            )
+            chunk["markdown"] = convert_to_markdown(chunk["body_tex"], tex_dir)
+
+        all_chunks.extend(chunks)
+
+    written = write_section_files(all_chunks, paper_dir, book=book)
+    for p in written:
+        print(f"[tex]   wrote {p}")
+
+    index_path = write_index(paper_dir)
+    print(f"[tex] Index → {index_path}")
+
+    total_theorems = sum(len(c.get("theorems", [])) for c in all_chunks)
+    _log("preprocess_tex_done", {
+        "book": book,
+        "chapter_filter": chapter,
+        "chunks_count": len(all_chunks),
+        "theorems_count": total_theorems,
+        "output_dir": str(paper_dir / "sections"),
+    })
+    print(f"[tex] Done. {len(all_chunks)} sections, {total_theorems} theorems.")
+
+
 if __name__ == "__main__":
-    print("preprocess_tex scaffold ok")
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Preprocess Bubeck15 TeX source into subsection markdown files."
+    )
+    parser.add_argument("tex_dir", help="Path to TeX source directory")
+    parser.add_argument("--chapter", type=int, default=None,
+                        help="Process only this chapter number")
+    args = parser.parse_args()
+    preprocess_tex(Path(args.tex_dir), chapter=args.chapter)
