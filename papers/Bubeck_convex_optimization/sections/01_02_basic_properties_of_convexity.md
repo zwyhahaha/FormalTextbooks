@@ -30,10 +30,11 @@ lean_files:
   status: pending
 - id: Definition 1.4
   path: proofs/Bubeck_convex_optimization/Definition14.lean
-  status: pending
+  status: proved
 - id: Proposition 1.5
   path: proofs/Bubeck_convex_optimization/Proposition15.lean
-  status: pending
+  status: proved
+
 ---
 
 \section{Basic properties of convexity}
