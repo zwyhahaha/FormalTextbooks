@@ -2,13 +2,13 @@
 
 | ID | Name | Section | Section Title | Lean file | Status |
 |----|------|---------|---------------|-----------|--------|
-| Definition 1.1 | Convex sets and convex functions | 1.0 | Introduction | proofs/Bubeck_convex_optimization/Definition11.lean | pending |
+| Definition 1.1 | Convex sets and convex functions | 1.0 | Introduction | proofs/Bubeck_convex_optimization/Definition11.lean | proved |
 | Theorem 1.2 | Separation Theorem | 1.2 | Basic properties of convexity | proofs/Bubeck_convex_optimization/Theorem12.lean | pending |
 | Theorem 1.3 | Supporting Hyperplane Theorem | 1.2 | Basic properties of convexity | proofs/Bubeck_convex_optimization/Theorem13.lean | pending |
 | Definition 1.4 | Subgradients | 1.2 | Basic properties of convexity | proofs/Bubeck_convex_optimization/Definition14.lean | pending |
 | Proposition 1.5 | Existence of subgradients | 1.2 | Basic properties of convexity | proofs/Bubeck_convex_optimization/Proposition15.lean | pending |
-| Proposition 1.6 | Local minima are global minima | 1.3 | Why convexity? | proofs/Bubeck_convex_optimization/Proposition16.lean | pending |
-| Proposition 1.7 | First order optimality condition | 1.3 | Why convexity? | proofs/Bubeck_convex_optimization/Proposition17.lean | pending |
+| Proposition 1.6 | Local minima are global minima | 1.3 | Why convexity? | proofs/Bubeck_convex_optimization/Proposition16.lean | proved |
+| Proposition 1.7 | First order optimality condition | 1.3 | Why convexity? | proofs/Bubeck_convex_optimization/Proposition17.lean | proved |
 | Theorem 2.1 |  | 2.1 | The center of gravity method | proofs/Bubeck_convex_optimization/Theorem21.lean | pending |
 | Lemma 2.2 |  | 2.1 | The center of gravity method | proofs/Bubeck_convex_optimization/Lemma22.lean | pending |
 | Lemma 2.3 |  | 2.2 | The ellipsoid method | proofs/Bubeck_convex_optimization/Lemma23.lean | pending |

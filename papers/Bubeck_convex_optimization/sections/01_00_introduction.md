@@ -15,7 +15,8 @@ theorems:
 lean_files:
 - id: Definition 1.1
   path: proofs/Bubeck_convex_optimization/Definition11.lean
-  status: pending
+  status: proved
+
 ---
 
 The central objects of our study are convex functions and convex sets in $\R^n$.
