@@ -14,4 +14,7 @@ lean_lib «Prover» where
 lean_lib «Proofs» where
   srcDir := "."
   roots := #[`proofs.demo.GradientDescentConvergence,
-             `proofs.demo_lecture.Theorem21]
+             `proofs.demo_lecture.Theorem21,
+             `proofs.Bubeck_convex_optimization.Proposition16,
+             `proofs.Bubeck_convex_optimization.Proposition15,
+             `proofs.Bubeck_convex_optimization.Proposition17]
