@@ -85,6 +85,55 @@ If WebSearch reveals the Claude-authored proof has an error or gap, correct it i
 If WebSearch confirms the proof is correct, add source citations under `## Sources`.
 If no useful sources found, proceed with Claude-authored proof only — mark status `CLAUDE-AUTHORED`.
 
+### 3c. Resolve all Mathlib gaps before proceeding
+
+Scan every step in the informal proof for `Genuine Mathlib gap? yes`. For each such step,
+you MUST write a sub-proof before moving on. Do NOT proceed to Step 4 until all gaps are resolved.
+
+**Resolution process (per gap):**
+
+1. Classify complexity:
+   - **Short** (≤3 sub-steps): write the sub-proof inline under the parent step
+     using the `### Sub-proof: <lemma name>` template below.
+   - **Complex** (>3 sub-steps): create a separate file
+     `proofs/<book>/informal/<LemmaName>_informal.md` and apply the full
+     prove-missing workflow recursively to it.
+
+2. After writing the sub-proof, check its steps for further gaps.
+   Recurse until all leaves are one of:
+   - A confirmed Mathlib lemma (found via lean_leansearch or lean_loogle)
+   - An elementary lemma closeable by `norm_num`, `ring`, `linarith`, `omega`, `simp`, or `decide`
+   - A genuine axiom (existence of Lebesgue measure, Fubini as primitive, etc.)
+     — label these `-- AXIOM:` not `-- GAP:`
+
+3. There is no depth limit. Recurse as deep as needed.
+
+**Inline sub-proof template** (append under the parent Step N block):
+
+~~~markdown
+### Sub-proof: <missing lemma name>
+
+**Statement:** <exact mathematical statement — a complete logical sentence>
+
+**Proof:**
+
+#### Sub-step 1: <title>
+**Claim:** <precise mathematical statement>
+**Proof of claim:** <complete argument — no "clearly" or "by standard argument">
+**Lean tactic sketch:**
+```lean
+-- goal: <paste goal state>
+<tactics>
+```
+**Remaining gaps:** none | [add another Sub-proof block below]
+
+#### Sub-step 2: ...
+~~~
+
+**Gate:** You may NOT proceed to Step 4 until:
+- Every `Genuine Mathlib gap? yes` has a completed sub-proof or a separate `_informal.md`
+- No sub-proof leaf is unresolved (no open `Remaining gaps:` without a Sub-proof)
+
 ### 4. Save informal proof
 
 Determine the output path:
@@ -143,20 +192,24 @@ or from a named theorem/hypothesis.>
 ```
 
 **Genuine Mathlib gap?** yes/no
-<If yes: name the missing theorem, describe what it says, confirm absence with
-lean_leansearch("<query>") → "no results". Do NOT write "yes" without running the search.>
+<If yes: do NOT write sorry here. You must complete Step 3c for this step before
+proceeding. Write the sub-proof inline below using the Sub-proof template, or flag
+it for a separate _informal.md file if >3 sub-steps. Only after the sub-proof is
+written should you confirm this as a gap — and even then, sorry is a last resort
+after 2+ recursive levels of failure.>
 
 ---
 
 ## Mathlib Gaps
 
-For each gap: name it, state what theorem is missing, and show search evidence.
+Gaps listed here must each have a completed Sub-proof block (from Step 3c) or a separate `_informal.md`.
+For each gap: name it, state what theorem is missing, show search evidence, and link to the sub-proof.
 
 - **Gap: <name>**
   - Missing theorem: <what it says mathematically>
   - lean_leansearch("<query 1>") → <result>
   - lean_loogle("<pattern>") → <result>
-  - Confirmed absent: yes
+  - Sub-proof: [inline below] | [see `proofs/<book>/informal/<LemmaName>_informal.md`]
 
 ## Status
 CLAUDE-AUTHORED COMPLETE — all steps proved, gaps confirmed with search
@@ -242,11 +295,22 @@ Try lean_multi_attempt with 3-5 new candidates.
 Break complex goals into sub-goals using `have h : <sub-claim> := by ...`.
 A tactic block that proves 3 out of 4 sub-goals is better than one sorry.
 
-### D. Only use sorry for CONFIRMED gaps
-A sorry is acceptable ONLY if:
-  1. The step is listed as CONFIRMED GAP in the lemma map, AND
-  2. You have personally run lean_leansearch and lean_loogle and found nothing, AND
-  3. You add a comment: `-- GAP: <theorem name needed>, confirmed absent via <search query>`
+### D. sorry is permitted ONLY under all three conditions
+
+A sorry is acceptable ONLY if ALL of the following hold:
+  1. The step's sub-proof (written in Step 3c) has been recursed 2+ levels deep AND
+     lean_leansearch + lean_loogle both returned no results at each level, AND
+  2. The claim is either:
+     (a) Elementary — it would close with `norm_num`, `ring`, `linarith`, or `omega`
+         once the right syntactic form is found, OR
+     (b) A genuine axiom (Lebesgue measure existence, Fubini as primitive, etc.)
+  3. You label it `-- AXIOM: <what it asserts>` (for axioms) or leave no `-- GAP:` comment
+     at all (for elementary bookkeeping that will close with a tactic search).
+
+**Explicitly forbidden:**
+- `-- GAP:` comments unless 2+ recursive sub-proof levels have been written and failed
+- The pattern: "not in Mathlib → sorry" without a completed sub-proof in Step 3c
+- Marking a step as CONFIRMED GAP without first attempting to prove it from scratch
 
 ### E. Never sorry structural steps
 Steps that are pure Lean bookkeeping (intro, apply, simp with existing lemmas,
@@ -255,7 +319,7 @@ ring, omega, linarith, field_simp, norm_num) must NOT use sorry. Always attempt 
 ## Style
 - See <example_proof_file> for import and variable block style
 - Use targeted imports (not `import Mathlib`)
-- Every sorry must have a `-- GAP:` comment with evidence
+- A sorry for an axiom must have `-- AXIOM: <what it asserts>`; never use `-- GAP:` without 2+ recursive sub-proof levels
 - Run `lake env lean <file>` to verify before declaring done
 ```
 
