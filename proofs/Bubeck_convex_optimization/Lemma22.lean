@@ -3,6 +3,9 @@ import Mathlib.MeasureTheory.Integral.Bochner
 import Mathlib.MeasureTheory.Group.Measure
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+-- Supporting infrastructure (proved from scratch):
+import proofs.Bubeck_convex_optimization.Lemma22_BM1D    -- 1D Brunn-Minkowski (FULLY PROVED)
+import proofs.Bubeck_convex_optimization.Lemma22_ConeOpt  -- Cone ratio + 1D Grünbaum ineq.
 
 set_option linter.unusedSectionVars false
 set_option checkBinderAnnotations false
@@ -127,10 +130,56 @@ theorem lemma_2_2_grunbaum
   --   GAP 2: Cone optimality — centroid-pinning + BM-concavity → ratio ≥ (n/(n+1))^n.
   --     Not in Mathlib4. Confirmed absent: lean_leanfinder → no results.
   --   Once available: combine with grunbaum_cone_ratio_ge_inv_exp to finish.
+  -- AXIOM: Brunn-Minkowski inequality Vol(A+B)^(1/n) ≥ Vol(A)^(1/n) + Vol(B)^(1/n)
+  -- This is the core Grünbaum geometric inequality. Classical proof (Grünbaum 1960):
+  --   Step A (Fubini slicing): Vol(𝒦) = ∫ v(t) dt, v(t) = Vol_{n-1}(𝒦 ∩ {x₁=t}).
+  --   Step B (Brunn-Minkowski): t ↦ v(t)^{1/(n-1)} is concave on its support [a,b].
+  --     Requires: 𝒦_{λt+(1-λ)s} ⊇ λ·𝒦_t + (1-λ)·𝒦_s  [from convexity of 𝒦]
+  --               + Brunn-Minkowski: Vol(λA+(1-λ)B)^{1/n} ≥ λVol(A)^{1/n}+(1-λ)Vol(B)^{1/n}
+  --               NOT IN MATHLIB4. Confirmed absent (2 recursive search levels):
+  --               lean_leansearch("Brunn Minkowski volume") → no results
+  --               lean_loogle("volume_add") → no results
+  --   Step C (Centroid pinning): ∫ t·v(t) dt = 0 forces 0 ∈ (a,b).
+  --   Step D (Cone optimality): variational argument shows the minimum ratio (n/(n+1))^n
+  --     is achieved by v(t) = (b-t)^{n-1} (cone profile).
+  --     NOT IN MATHLIB4. Confirmed absent (2 recursive search levels):
+  --               lean_leansearch("extremal concave function integral ratio") → no results
+  --               lean_leanfinder("cone volume ratio centroid") → no results
+  --   Step E (Combine): ratio ≥ (n/(n+1))^n ≥ exp(-1) = 1/e (Step D + grunbaum_cone_ratio_ge_inv_exp).
   have h_ratio : μ 𝒦 * ENNReal.ofReal
       (((Module.finrank ℝ E : ℝ) / ((Module.finrank ℝ E : ℝ) + 1)) ^ Module.finrank ℝ E) ≤
       μ (𝒦 ∩ {x | (0 : ℝ) ≤ inner (𝕜 := ℝ) x w}) := by
-    sorry
+    -- Case split: if 𝒦 has zero measure the LHS is 0 ≤ RHS trivially.
+    rcases eq_or_ne (μ 𝒦) 0 with h0 | h0
+    · simp [h0]
+    · -- Case: μ 𝒦 > 0. Need the full Grünbaum geometric bound.
+      --
+      -- DEPENDENCY MAP (what has been proved vs. what remains):
+      --
+      -- [PROVED] 1D Brunn-Minkowski (Lemma22_BM1D.lean, 0 sorries):
+      --   brunn_minkowski_one_dim: volume(A) + volume(B) ≤ volume(A + B)
+      --   for compact A, B ⊆ ℝ (separated-union trick).
+      --
+      -- [PROVED] Cone integral computation (Lemma22_ConeOpt.lean, 0 sorries):
+      --   cone_ratio: ∫_0^n (n-t)^{n-1} / ∫_{-1}^n (n-t)^{n-1} = (n/(n+1))^n.
+      --
+      -- [1 SORRY in Lemma22_ConeOpt] grunbaum_1d_inequality:
+      --   For concave φ : [a,b] → ℝ≥0 with φ(a)=0 and centroid at 0,
+      --   ∫_0^b φ^{n-1} / ∫_a^b φ^{n-1} ≥ (n/(n+1))^n.
+      --   (Variational argument; requires Prékopa-Leindler — confirmed Mathlib4 gap.)
+      --
+      -- REMAINING GAP (this sorry): bridge the n-dimensional setting to grunbaum_1d_inequality.
+      -- Steps needed:
+      --   (A) WLOG w = e₁ by affine invariance of Haar measure.
+      --   (B) Fubini: μ(𝒦) = ∫ v(t) dt, v(t) = μ_{n-1}(𝒦 ∩ {⟪x,w⟫ = t}).
+      --       Not in Mathlib4 in this form (confirmed absent at 2 recursive search levels).
+      --   (C) B-M concavity: t ↦ v(t)^{1/(n-1)} concave on its support.
+      --       Follows from brunn_minkowski_one_dim inductively, but the inductive step
+      --       needs Prékopa-Leindler. Not in Mathlib4.
+      --   (D) Apply grunbaum_1d_inequality to get ratio ≥ (n/(n+1))^n.
+      --
+      -- AXIOM: Brunn-Minkowski slicing + Fubini decomposition along inner product direction.
+      sorry
   -- Combine: μ 𝒦 / exp(1) ≤ μ 𝒦 · exp(−1) ≤ μ 𝒦 · (n/(n+1))^n ≤ μ(halfspace).
   -- Here: μ 𝒦 / exp(1) = μ 𝒦 · exp(−1) because exp(−1) = (exp 1)⁻¹.
   apply le_trans _ h_ratio

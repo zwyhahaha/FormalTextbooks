@@ -17,4 +17,9 @@ lean_lib «Proofs» where
              `proofs.demo_lecture.Theorem21,
              `proofs.Bubeck_convex_optimization.Proposition16,
              `proofs.Bubeck_convex_optimization.Proposition15,
-             `proofs.Bubeck_convex_optimization.Proposition17]
+             `proofs.Bubeck_convex_optimization.Proposition17,
+             `proofs.Bubeck_convex_optimization.Lemma22,
+             `proofs.Bubeck_convex_optimization.Lemma22_BM1D,
+             `proofs.Bubeck_convex_optimization.Lemma22_ConeOpt,
+             `proofs.Bubeck_convex_optimization.Theorem21,
+             `proofs.Bubeck_convex_optimization.Lemma25]
