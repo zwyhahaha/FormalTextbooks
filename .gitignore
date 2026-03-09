@@ -16,3 +16,5 @@ __pycache__/
 
 # Papers (PDFs can be large)
 papers/*/original.pdf
+
+.claude/settings.local.json
