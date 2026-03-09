@@ -75,11 +75,22 @@ Run these queries (adjust theorem name):
 1. `"<theorem_name> proof"` — look for alternative proofs or corrections
 2. `"<theorem_name> Lean 4 Mathlib"` — check for existing formalization
 3. `"<key lemma in proof> Mathlib"` — verify supporting lemmas exist
+4. `site:github.com "<theorem_name>" lean` — search GitHub for any Lean 4 formalization
+5. `site:github.com/leanprover-community/mathlib4 "<theorem_name>"` — mathlib4 source directly
+6. `site:github.com/madvorak/optlib "<theorem_name>"` — check optlib for an existing proof
+7. `"<theorem_name>" site:loogle.lean-lang.org OR site:leanprover.zulipchat.com` — community discussions
+
+Also **check optlib locally** before relying on WebSearch:
+```bash
+grep -r "<theorem_name>\|<key_lemma>" .lake/packages/optlib/Optlib/ --include="*.lean" -l
+```
+If a match is found in optlib, read that file and use it directly — skip to Step 6.
 
 **Source priority for corrections only** (highest → lowest):
-1. Existing Lean 4 / Mathlib formalizations → use directly, skip to Step 6
-2. Textbook proofs (e.g. arXiv papers, lecture notes) → note discrepancies with Claude draft
-3. Wikipedia → use only to check definitions, not proof strategy
+1. Optlib (local) — already a dependency; import and use directly, skip to Step 6
+2. Mathlib4 GitHub or Lean 4 GitHub repos — import the module, skip to Step 6
+3. Textbook proofs (e.g. arXiv papers, lecture notes) → note discrepancies with Claude draft
+4. Wikipedia → use only to check definitions, not proof strategy
 
 If WebSearch reveals the Claude-authored proof has an error or gap, correct it in the draft.
 If WebSearch confirms the proof is correct, add source citations under `## Sources`.
