@@ -1,6 +1,7 @@
-Look up a theorem by ID, generate a structured informal proof via WebSearch,
-then formalize it with lean4:autoprove. Use this for theorems whose proofs
-are missing from the book (cited without proof).
+Look up a theorem by ID, write a complete informal proof from Claude's own
+mathematical knowledge (WebSearch used only for verification), then formalize
+it with lean4:prove. Use this for theorems whose proofs are missing from the
+book (cited without proof).
 
 > **Run autonomously.** Do not ask the user for confirmations, approvals,
 > or plan reviews at any step. Proceed directly through all steps without pausing.
@@ -33,27 +34,58 @@ lake exe cache get && lake build
 
 If this fails, stop and report the build error.
 
-### 3. WebSearch for informal proof
+### 3. Write the complete informal proof from scratch
 
-Run the following queries in sequence, stopping early if a high-quality
-proof is found (e.g., an existing Lean/Mathlib formalization):
+Using the theorem statement from the section file, write a **complete mathematical proof**
+from Claude's own knowledge. This is the primary proof authoring step — do NOT search the
+web first.
 
-1. `"<theorem_name> proof"` — direct search for classical proof
-2. `"<theorem_name> convex geometry proof sketch"` — broaden if sparse
-3. `"<theorem_name> Lean 4 Mathlib formalization"` — check if already done
-4. `"<key mathematical ingredient> Mathlib"` — verify supporting lemmas
-5. `"<theorem_name> lecture notes"` — fallback for pedagogical write-ups
+Requirements for the proof:
 
-**Source priority** (highest → lowest):
+**Completeness:** Every logical step must be spelled out. No "by standard argument",
+"clearly", "it follows that", or "one can show". Write out every algebraic manipulation,
+every inequality, every case split, every substitution.
+
+**Self-contained:** Define every symbol used. If a proof invokes a named theorem
+(Cauchy-Schwarz, Sherman-Morrison, AM-GM, etc.), state the form of that theorem being
+used, with the specific instantiation for this proof.
+
+**Structured:** Divide the proof into numbered steps. Each step proves exactly one claim.
+Each step references only previously established claims or stated hypotheses.
+
+**Level of detail:** Aim for the level of a graduate textbook proof, e.g. Rockafellar's
+"Convex Analysis" or Boyd & Vandenberghe — not a research paper (too terse) and not a
+first-year course (too verbose). Every step should be verifiable by a reader with a
+standard analysis/linear algebra background.
+
+**Do not use:** vague language like "similarly", "analogously", "by symmetry" — write
+out the argument each time.
+
+Save the proof as the "Claude-authored draft" section in the informal proof file
+(Step 4 template below). Mark it `## Source: Claude (primary)`.
+
+### 3b. WebSearch for cross-checking and supplementing
+
+After writing the Claude-authored draft, run targeted searches to:
+1. Verify the proof strategy matches the literature
+2. Find if a Lean/Mathlib formalization already exists (skip to Step 6 if yes)
+3. Identify any step where the Claude-authored proof might have an error
+
+Run these queries (adjust theorem name):
+1. `"<theorem_name> proof"` — look for alternative proofs or corrections
+2. `"<theorem_name> Lean 4 Mathlib"` — check for existing formalization
+3. `"<key lemma in proof> Mathlib"` — verify supporting lemmas exist
+
+**Source priority for corrections only** (highest → lowest):
 1. Existing Lean 4 / Mathlib formalizations → use directly, skip to Step 6
-2. Wikipedia
-3. arXiv lecture notes / survey papers
-4. Math StackExchange
+2. Textbook proofs (e.g. arXiv papers, lecture notes) → note discrepancies with Claude draft
+3. Wikipedia → use only to check definitions, not proof strategy
 
-If no useful sources are found after all 5 queries, proceed with Claude's
-own mathematical knowledge and flag the result as CLAUDE-GENERATED.
+If WebSearch reveals the Claude-authored proof has an error or gap, correct it in the draft.
+If WebSearch confirms the proof is correct, add source citations under `## Sources`.
+If no useful sources found, proceed with Claude-authored proof only — mark status `CLAUDE-AUTHORED`.
 
-### 4. Synthesize and save informal proof
+### 4. Save informal proof
 
 Determine the output path:
 ```
@@ -63,37 +95,76 @@ INFORMAL_FILE="$INFORMAL_DIR/<TheoremName>_informal.md"
 (Use the `book` and `theorem_id` values from Step 1 to derive the filename,
 e.g. `Lemma22_informal.md` for theorem_id `Lemma 2.2`.)
 
-Write the file using this template — fill every field from the sources found:
+Write the file using this template — fill every field from the proof written in Step 3:
 
 ```markdown
 # Informal Proof: <theorem_name>
 
+## Source: Claude (primary)
+This proof was written by Claude from mathematical knowledge.
+WebSearch was used for cross-checking only (see Sources below).
+
 ## Sources
-- [Source title](url)
+- [Source title](url)  ← from Step 3b, for verification only
 
 ## Theorem Statement
-<Full statement in plain English + math notation>
+<Full formal statement: hypotheses, conclusion, all quantifiers.
+Include types of all variables. Do not omit edge conditions.>
 
-## Proof Steps
+## Proof
 
-### Step N: <Title>
+<The complete proof written in Step 3. This is the FULL text of the proof,
+not a list of steps — write it as flowing mathematical prose with equations,
+divided into numbered steps only where the logical structure requires it.>
 
-**English:** <Full sentence explanation of what this step does and why.>
+### Step N: <Title of this proof segment>
 
-**Math:** <The key equation or inequality being established, with symbols.>
+**Claim:** <The precise mathematical statement being proved in this step.
+Must be a complete logical sentence — not just a label.>
 
-**Lean/Mathlib hint:** <Candidate lemma names or search terms for lean_leansearch>
+**Proof of claim:** <Complete self-contained argument. Write every algebraic
+manipulation, every inequality application, every case split. Do not write
+"by standard argument" or "clearly". Every step must follow from what came before
+or from a named theorem/hypothesis.>
 
-**Sorry prediction:** yes/no — yes if this step needs `sorry` due to missing Mathlib lemma
+**Named theorems used:** <List each external result invoked: name, statement
+(the exact form used here, not the general form), reference if known.>
 
-## Mathlib Gaps
-- <Lemma description>: not found in Mathlib 4.x (search confirmed)
+**Lean lemma search** (run lean_leansearch + lean_loogle in Step 5.5):
+- Candidate 1: `<lemma name>` — proves `<what>`
+- Candidate 2: `<lemma name>` — proves `<what>`
+- Candidate 3: `<lemma name>` — proves `<what>`
 
-## Status
-PROOF FOUND | CLAUDE-GENERATED (unverified) | PROOF NOT FOUND — manual input needed
+**Lean tactic sketch:**
+```lean
+-- goal: <paste goal state here>
+<write the tactic block: intro/apply/have/rw/simp/ring/linarith/omega/exact>
+-- use `_` only for sub-goals that require a separate named lemma not yet found
 ```
 
-If no proof could be generated (Status = PROOF NOT FOUND):
+**Genuine Mathlib gap?** yes/no
+<If yes: name the missing theorem, describe what it says, confirm absence with
+lean_leansearch("<query>") → "no results". Do NOT write "yes" without running the search.>
+
+---
+
+## Mathlib Gaps
+
+For each gap: name it, state what theorem is missing, and show search evidence.
+
+- **Gap: <name>**
+  - Missing theorem: <what it says mathematically>
+  - lean_leansearch("<query 1>") → <result>
+  - lean_loogle("<pattern>") → <result>
+  - Confirmed absent: yes
+
+## Status
+CLAUDE-AUTHORED COMPLETE — all steps proved, gaps confirmed with search
+CLAUDE-AUTHORED PARTIAL — some genuine Mathlib gaps remain, all documented
+NOT FOUND — Claude could not construct a proof; manual input needed
+```
+
+If no proof could be generated (Status = NOT FOUND):
 - Save the minimal file with the Status line only
 - Skip Steps 5–7
 - Jump to Step 8 with status = `failed`
@@ -106,6 +177,33 @@ Read the file at `example_proof_file` from the lookup JSON for style reference:
 - How `open` statements are used
 - Overall theorem structure
 
+### 5.5. Per-step tactic search
+
+For **each step** in the informal proof `_informal.md`, perform:
+
+1. **Run lean_leansearch** with the step's key mathematical claim.
+   Record the top-3 results (name + type signature).
+
+2. **Run lean_loogle** with the type pattern of the key lemma needed.
+   Record the top-3 results.
+
+3. **Run lean_leanfinder** with a description of what the step proves.
+   Record the top-2 results.
+
+4. Collect results into a "Per-step lemma map":
+   ```
+   Step N: <title>
+     leansearch: [lemma1, lemma2, lemma3]
+     loogle: [lemma4, lemma5]
+     leanfinder: [lemma6, lemma7]
+     best_candidate: <lemma name> — reason: <why this is the best match>
+   ```
+
+5. For steps where NO candidate is found after all 3 searches: mark as
+   `CONFIRMED GAP: <search queries run>`.
+
+This lemma map is passed to prove in Step 6.
+
 ### 6. Construct autoprove prompt
 
 Build the following prompt (fill `<...>` from lookup JSON and the informal proof):
@@ -114,35 +212,63 @@ Build the following prompt (fill `<...>` from lookup JSON and the informal proof
 Formalize <theorem_id> (<theorem_name>) from:
     <section_file>
 
-The statement is:
+## Theorem statement
 <theorem_statement>
 
-Informal proof (from <INFORMAL_FILE>):
+## Informal proof (source: <INFORMAL_FILE>)
 <paste full contents of _informal.md here>
 
-Steps:
-1. Work through the informal proof steps in order. For each step:
-   a. Translate the Math field into a Lean sub-goal or intermediate lemma.
-   b. Use the Lean/Mathlib hint to search with lean_leanfinder / lean_leansearch.
-   c. If Sorry prediction = yes, place `sorry` with a comment:
-      -- TODO: needs <hint> — not yet in Mathlib
-      and continue to the next step.
-2. Search for relevant lemmas in this order:
-   a. Previously proved theorems in proofs/<book>/ — list the directory,
-      read relevant files, note theorem names and signatures.
-      Import with: import proofs.<book>.<FileName>
-   b. Optlib (.lake/packages/optlib/Optlib/) — key modules:
-      Optlib/Convex/Subgradient.lean, ConvexFunction.lean
-   c. Mathlib — search with lean_leanfinder / lean_leansearch
-3. See <example_proof_file> for expected style.
-4. Create/update <lean_file> implementing the proof.
-5. Run /lean4:checkpoint when the proof compiles (even with sorrys).
-6. Do NOT update index.md or logs/proofs.log — prove-missing handles that.
+## Per-step lemma map (from Step 5.5)
+<paste the full per-step lemma map here>
+
+## Instructions
+
+Work through each step of the informal proof. For each step:
+
+### A. Try the lemma candidates first
+Use the best_candidate from the lemma map. Test with lean_multi_attempt:
+  - Try `exact <candidate>` or `apply <candidate>`
+  - Try `simp only [<candidate>]`
+  - Try `rw [<candidate>]`
+Record which tactic, if any, closes the goal.
+
+### B. If candidates fail, search further
+Run lean_leanfinder with the current goal state (copy from lean_goal).
+Run lean_leansearch with the mathematical claim in plain English.
+Run lean_loogle with the type pattern of the needed lemma.
+Try lean_multi_attempt with 3-5 new candidates.
+
+### C. Build incrementally with `have`
+Break complex goals into sub-goals using `have h : <sub-claim> := by ...`.
+A tactic block that proves 3 out of 4 sub-goals is better than one sorry.
+
+### D. Only use sorry for CONFIRMED gaps
+A sorry is acceptable ONLY if:
+  1. The step is listed as CONFIRMED GAP in the lemma map, AND
+  2. You have personally run lean_leansearch and lean_loogle and found nothing, AND
+  3. You add a comment: `-- GAP: <theorem name needed>, confirmed absent via <search query>`
+
+### E. Never sorry structural steps
+Steps that are pure Lean bookkeeping (intro, apply, simp with existing lemmas,
+ring, omega, linarith, field_simp, norm_num) must NOT use sorry. Always attempt them.
+
+## Style
+- See <example_proof_file> for import and variable block style
+- Use targeted imports (not `import Mathlib`)
+- Every sorry must have a `-- GAP:` comment with evidence
+- Run `lake env lean <file>` to verify before declaring done
 ```
 
-### 7. Invoke autoprove
+### 7. Invoke prove (interactive)
 
-Use the Skill tool to invoke `lean4:autoprove` with the prompt from Step 6.
+Use the Skill tool to invoke `lean4:prove` with the prompt from Step 6.
+
+Rationale: `lean4:autoprove` is optimized for speed and accepts sorry quickly.
+For theorems with missing proofs, `lean4:prove` works cycle-by-cycle with explicit
+checkpoints at each tactic, ensuring every provable sub-goal is attempted.
+
+If `lean4:prove` exceeds 20 cycles without completing, switch to `lean4:autoprove`
+with the SAME prompt (not the original one — include the lemma map).
 
 ### 8. Post-proof
 
@@ -157,7 +283,7 @@ python3 scripts/update_theorem_status.py "$ARGUMENTS" proved --time "$ELAPSED"
 python3 scripts/update_theorem_status.py "$ARGUMENTS" partial
 ```
 
-**If status = `failed` (proof not found or autoprove failed):**
+**If status = `failed` (proof not found or prove failed):**
 ```bash
 python3 scripts/update_theorem_status.py "$ARGUMENTS" failed
 ```
