@@ -110,19 +110,31 @@ theorem lemma_2_2_grunbaum
     {w : E} (hw : w ≠ 0) :
     μ 𝒦 / ENNReal.ofReal (exp 1) ≤
       μ (𝒦 ∩ {x | (0 : ℝ) ≤ inner (𝕜 := ℝ) x w}) := by
-  -- Let n = finrank ℝ E (the ambient dimension).
-  -- The classical proof reduces the volume-ratio bound to grunbaum_cone_ratio_ge_inv_exp
-  -- via two intermediate steps that are currently missing from Mathlib 4:
-  --
-  -- TODO (Step 2): Brunn-Minkowski slicing — needs
-  --   concavity of (Vol_{n-1}(𝒦 ∩ {⟪x,w⟫ = t}))^{1/(n-1)} in t;
-  --   requires Prékopa-Leindler or a direct BM argument on slices.
-  --   Not available in Mathlib 4.x.
-  --
-  -- TODO (Step 3): Cone optimality — needs a variational argument showing
-  --   the worst-case ratio ≥ (n/(n+1))^n for n = finrank ℝ E.
-  --   Depends on Prékopa-Leindler inequality, not in Mathlib 4.x.
-  --
-  -- Once Steps 2–3 are available, the conclusion follows from:
-  --   grunbaum_cone_ratio_ge_inv_exp (finrank ℝ E) (finrank_pos)
-  sorry
+  -- Since w ≠ 0, E must be nontrivial (w and 0 are distinct elements).
+  haveI : Nontrivial E := ⟨⟨w, 0, hw⟩⟩
+  -- n = ambient dimension; positive because E is nontrivial.
+  have hn_pos : 0 < Module.finrank ℝ E := Module.finrank_pos
+  -- The Grünbaum volume ratio for dimension n: r = n/(n+1) ∈ (0,1).
+  -- Step 4 (proved): arithmetic bound — (n/(n+1))^n ≥ exp(−1) = 1/e.
+  have h_arith : Real.exp (-1 : ℝ) ≤
+      ((Module.finrank ℝ E : ℝ) / ((Module.finrank ℝ E : ℝ) + 1)) ^ Module.finrank ℝ E :=
+    grunbaum_cone_ratio_ge_inv_exp (Module.finrank ℝ E) hn_pos
+  -- Step 2–3 (GAP): volume ratio bound via Brunn-Minkowski + cone optimality.
+  -- Classical proof shows: μ(𝒦 ∩ halfspace) ≥ (n/(n+1))^n · μ(𝒦).
+  --   GAP 1: Brunn-Minkowski slicing — Vol_{n-1}(𝒦_t)^{1/(n-1)} concave in t.
+  --     Not in Mathlib4. Requires Prékopa-Leindler inequality.
+  --     Confirmed absent: lean_loogle("BrunnMinkowski") → no results.
+  --   GAP 2: Cone optimality — centroid-pinning + BM-concavity → ratio ≥ (n/(n+1))^n.
+  --     Not in Mathlib4. Confirmed absent: lean_leanfinder → no results.
+  --   Once available: combine with grunbaum_cone_ratio_ge_inv_exp to finish.
+  have h_ratio : μ 𝒦 * ENNReal.ofReal
+      (((Module.finrank ℝ E : ℝ) / ((Module.finrank ℝ E : ℝ) + 1)) ^ Module.finrank ℝ E) ≤
+      μ (𝒦 ∩ {x | (0 : ℝ) ≤ inner (𝕜 := ℝ) x w}) := by
+    sorry
+  -- Combine: μ 𝒦 / exp(1) ≤ μ 𝒦 · exp(−1) ≤ μ 𝒦 · (n/(n+1))^n ≤ μ(halfspace).
+  -- Here: μ 𝒦 / exp(1) = μ 𝒦 · exp(−1) because exp(−1) = (exp 1)⁻¹.
+  apply le_trans _ h_ratio
+  rw [ENNReal.div_eq_inv_mul, mul_comm]
+  gcongr
+  rw [← ENNReal.ofReal_inv_of_pos (Real.exp_pos 1)]
+  exact ENNReal.ofReal_le_ofReal (by rwa [← Real.exp_neg])
