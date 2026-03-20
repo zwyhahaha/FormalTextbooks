@@ -15,7 +15,8 @@ theorems:
 lean_files:
 - id: Lemma 3.1
   path: proofs/Bubeck_convex_optimization/Lemma31.lean
-  status: pending
+  status: proved
+
 ---
 
 We investigate here variants of the {\em gradient descent} scheme. This iterative algorithm, which can be traced back to \cite{Cau47}, is the simplest strategy to minimize a differentiable function $f$ on $\R^n$. Starting at some initial point $x_1 \in \R^n$ it iterates the following equation:
