@@ -24,10 +24,11 @@ lean_files:
   status: pending
 - id: Lemma 3.4
   path: proofs/Bubeck_convex_optimization/Lemma34.lean
-  status: pending
+  status: proved
 - id: Lemma 3.5
   path: proofs/Bubeck_convex_optimization/Lemma35.lean
-  status: pending
+  status: proved
+
 ---
 
 \section{Gradient descent for smooth functions} \label{sec:gdsmooth}

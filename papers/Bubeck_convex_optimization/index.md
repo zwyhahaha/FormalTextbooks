@@ -18,12 +18,12 @@
 | Theorem 2.7 |  | 2.3.4 | Constraints and the volumetric barrier | proofs/Bubeck_convex_optimization/Theorem27.lean | pending | — |
 | Lemma 2.8 |  | 2.3.4 | Constraints and the volumetric barrier | proofs/Bubeck_convex_optimization/Lemma28.lean | pending | — |
 | Lemma 3.1 |  | 3.0 | Dimension-free convex optimization | proofs/Bubeck_convex_optimization/Lemma31.lean | proved | 59m 4s |
-| Theorem 3.2 |  | 3.1 | Projected subgradient descent for Lipschitz functions | proofs/Bubeck_convex_optimization/Theorem32.lean | pending | — |
+| Theorem 3.2 |  | 3.1 | Projected subgradient descent for Lipschitz functions | proofs/Bubeck_convex_optimization/Theorem32.lean | proved | 60m 0s |
 | Lemma 3.6 |  | 3.2.1 | The constrained case | proofs/Bubeck_convex_optimization/Lemma36.lean | pending | — |
 | Theorem 3.7 |  | 3.2.1 | The constrained case | proofs/Bubeck_convex_optimization/Theorem37.lean | pending | — |
 | Theorem 3.3 |  | 3.2 | Gradient descent for smooth functions | proofs/Bubeck_convex_optimization/Theorem33.lean | pending | — |
-| Lemma 3.4 |  | 3.2 | Gradient descent for smooth functions | proofs/Bubeck_convex_optimization/Lemma34.lean | pending | — |
-| Lemma 3.5 |  | 3.2 | Gradient descent for smooth functions | proofs/Bubeck_convex_optimization/Lemma35.lean | pending | — |
+| Lemma 3.4 |  | 3.2 | Gradient descent for smooth functions | proofs/Bubeck_convex_optimization/Lemma34.lean | proved | 16m 36s |
+| Lemma 3.5 |  | 3.2 | Gradient descent for smooth functions | proofs/Bubeck_convex_optimization/Lemma35.lean | proved | 8m 1s |
 | Theorem 3.8 |  | 3.3 | Conditional gradient descent, aka Frank-Wolfe | proofs/Bubeck_convex_optimization/Theorem38.lean | pending | — |
 | Theorem 3.9 |  | 3.4.1 | Strongly convex and Lipschitz functions | proofs/Bubeck_convex_optimization/Theorem39.lean | pending | — |
 | Theorem 3.10 |  | 3.4.2 | Strongly convex and smooth functions | proofs/Bubeck_convex_optimization/Theorem310.lean | pending | — |
