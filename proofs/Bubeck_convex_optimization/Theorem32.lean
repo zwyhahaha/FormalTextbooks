@@ -28,7 +28,7 @@ theorem pgd_one_step_bound
     {f : E → ℝ}
     {xstar xk yk1 xk1 gk : E}
     {L η : ℝ} (hη : 0 < η) (hL : 0 < L)
-    (hxk_in : xk ∈ 𝒳) (hxstar_in : xstar ∈ 𝒳)
+    (_hxk_in : xk ∈ 𝒳) (hxstar_in : xstar ∈ 𝒳)
     (hgk : HasSubgradientWithinAt f gk 𝒳 xk)
     (hgk_bound : ‖gk‖ ≤ L)
     (hyk1 : yk1 = xk - η • gk)
@@ -97,7 +97,7 @@ theorem pgd_sum_bound
     {f : E → ℝ}
     {xstar : E} (hxstar_in : xstar ∈ 𝒳)
     {R L η : ℝ} (hR : 0 < R) (hL : 0 < L) (hη : 0 < η)
-    {t : ℕ} (ht : 0 < t)
+    {t : ℕ} (_ht : 0 < t)
     {x y g : ℕ → E}
     (hx_in : ∀ k, x k ∈ 𝒳)
     (hinit : ‖x 0 - xstar‖ ≤ R)
