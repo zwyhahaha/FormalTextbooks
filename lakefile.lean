@@ -22,4 +22,6 @@ lean_lib «Proofs» where
              `proofs.Bubeck_convex_optimization.Lemma22_BM1D,
              `proofs.Bubeck_convex_optimization.Lemma22_ConeOpt,
              `proofs.Bubeck_convex_optimization.Theorem21,
-             `proofs.Bubeck_convex_optimization.Lemma25]
+             `proofs.Bubeck_convex_optimization.Lemma25,
+             `proofs.Bubeck_convex_optimization.Lemma31,
+             `proofs.Bubeck_convex_optimization.Theorem32]
