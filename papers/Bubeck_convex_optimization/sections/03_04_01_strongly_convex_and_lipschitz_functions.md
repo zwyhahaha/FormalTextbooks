@@ -15,7 +15,8 @@ theorems:
 lean_files:
 - id: Theorem 3.9
   path: proofs/Bubeck_convex_optimization/Theorem39.lean
-  status: pending
+  status: proved
+
 ---
 
 \subsection{Strongly convex and Lipschitz functions}
