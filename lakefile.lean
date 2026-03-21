@@ -29,4 +29,9 @@ lean_lib «Proofs» where
              `proofs.Bubeck_convex_optimization.Lemma35,
              `proofs.Bubeck_convex_optimization.Lemma36,
              `proofs.Bubeck_convex_optimization.Theorem33,
-             `proofs.Bubeck_convex_optimization.Theorem37]
+             `proofs.Bubeck_convex_optimization.Theorem37,
+             `proofs.Bubeck_convex_optimization.Theorem38,
+             `proofs.Bubeck_convex_optimization.Theorem39,
+             `proofs.Bubeck_convex_optimization.Lemma311,
+             `proofs.Bubeck_convex_optimization.Theorem310,
+             `proofs.Bubeck_convex_optimization.Theorem312]
