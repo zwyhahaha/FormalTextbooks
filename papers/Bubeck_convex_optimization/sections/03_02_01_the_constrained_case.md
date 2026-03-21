@@ -18,10 +18,11 @@ theorems:
 lean_files:
 - id: Lemma 3.6
   path: proofs/Bubeck_convex_optimization/Lemma36.lean
-  status: pending
+  status: proved
 - id: Theorem 3.7
   path: proofs/Bubeck_convex_optimization/Theorem37.lean
-  status: pending
+  status: proved
+
 ---
 
 \subsection*{The constrained case}
