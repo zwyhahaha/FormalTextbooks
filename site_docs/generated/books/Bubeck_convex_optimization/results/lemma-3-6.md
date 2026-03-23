@@ -1,0 +1,131 @@
+# Lemma 3.6
+
+[Bubeck Convex Optimization](../index.md) / [Chapter 3](../chapters/chapter-3.md) / [Section 3.2.1](../sections/section-3-2-1-the-constrained-case.md)
+
+<div class="chip-row"><a class="chip-link active" href="../../Bubeck_convex_optimization/index.md">Bubeck Convex Optimization</a></div>
+
+**Status:** <span class="status-badge status-proved">Proved</span>
+
+**Roadmap context:** <span class="roadmap-pill roadmap-high">High</span> Build a coherent first-order methods track that starts with gradient and subgradient methods, then expands toward strong convexity and acceleration.
+
+## Informal Statement
+
+**Lemma**
+
+Let $x, y \in \cX$, $x^+ = \Pi_{\cX}\left(x - \frac{1}{\beta} \nabla f(x)\right)$, and $g_{\cX}(x) = \beta(x - x^+)$. Then the following holds true:
+
+\[
+f(x^+) - f(y) \leq g_{\cX}(x)^{\top}(x-y) - \frac{1}{2 \beta} \|g_{\cX}(x)\|^2 .
+\]
+
+## Lean Formalization
+
+Symbol: `lemma_3_6`
+
+```lean
+import Optlib.Function.Lsmooth
+import Mathlib.Analysis.InnerProductSpace.Projection
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
+
+open InnerProductSpace Set
+
+variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
+
+/-!
+# Lemma 3.6 — Progress bound for projected gradient descent (Bubeck §3.2.1)
+
+Source: papers/Bubeck_convex_optimization/sections/03_02_01_the_constrained_case.md
+
+Let x, y ∈ X (convex set), x⁺ = Π_X(x - (1/β)∇f(x)), g_X(x) = β(x - x⁺).
+Then: f(x⁺) - f(y) ≤ ⟨g_X(x), x-y⟩ - 1/(2β)‖g_X(x)‖²
+-/
+
+/-- Helper: for a real inner product space, ⟪r • x, y⟫_ℝ = r * ⟪x, y⟫_ℝ -/
+private lemma real_inner_smul_left' {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+    (r : ℝ) (x y : E) : ⟪r • x, y⟫_ℝ = r * ⟪x, y⟫_ℝ := by
+  rw [real_inner_comm, inner_smul_right, real_inner_comm]
+
+/-- **Lemma 3.6** (Bubeck §3.2.1): Progress bound for projected gradient descent.
+Let x, y ∈ X, x⁺ = Π_X(x - (1/β)∇f(x)), g_X(x) = β(x - x⁺). Then
+  f(x⁺) - f(y) ≤ ⟨g_X(x), x-y⟩ - 1/(2β) ‖g_X(x)‖² -/
+theorem lemma_3_6
+    {f : E → ℝ} {f' : E → E} {β : ℝ}
+    (hβ : 0 < β)
+    {X : Set E} (hX : Convex ℝ X)
+    -- Sandwich bound (eq:defaltsmooth): lower bound (convexity) + upper bound (β-smoothness)
+    (hlo : ∀ a b : E, 0 ≤ f a - f b - ⟪f' b, a - b⟫_ℝ)
+    (hup : ∀ a b : E, f a - f b - ⟪f' b, a - b⟫_ℝ ≤ β / 2 * ‖a - b‖ ^ 2)
+    -- x⁺ = Π_X(x - (1/β)∇f(x)): stated via projection characterization
+    {x xp y : E}
+    (hxp_mem : xp ∈ X)
+    (hy_mem : y ∈ X)
+    -- Projection property: ⟨q - x⁺, z - x⁺⟩ ≤ 0 for all z ∈ X, q = x - (1/β)f'(x)
+    (hproj : ∀ z ∈ X, ⟪(x - (1 / β) • f' x) - xp, z - xp⟫_ℝ ≤ 0) :
+    f xp - f y ≤ ⟪β • (x - xp), x - y⟫_ℝ - 1 / (2 * β) * ‖β • (x - xp)‖ ^ 2 := by
+  -- Step 1: Projection inequality at z = y
+  -- hproj y: ⟪(x - (1/β)•f'x) - xp, y - xp⟫ ≤ 0
+  -- = ⟪(x-xp) - (1/β)•f'x, y-xp⟫ ≤ 0
+  -- = ⟪x-xp, y-xp⟫ - (1/β)*⟪f'x, y-xp⟫ ≤ 0
+  have hproj_y := hproj y hy_mem
+  have hineq : ⟪x - xp, y - xp⟫_ℝ - 1 / β * ⟪f' x, y - xp⟫_ℝ ≤ 0 := by
+    have heq : (x - (1 / β) • f' x) - xp = (x - xp) - (1 / β) • f' x := by abel
+    rw [heq, inner_sub_left, real_inner_smul_left'] at hproj_y
+    linarith
+  -- Derive: ⟪f'x, xp-y⟫ ≤ ⟪β•(x-xp), xp-y⟫
+  have hkey : ⟪f' x, xp - y⟫_ℝ ≤ ⟪β • (x - xp), xp - y⟫_ℝ := by
+    -- Step: β * ⟪x-xp, y-xp⟫ ≤ ⟪f'x, y-xp⟫
+    -- From hineq: ⟪x-xp, y-xp⟫ ≤ (1/β) * ⟪f'x, y-xp⟫
+    -- Multiply by β > 0
+    have h_mid : β * ⟪x - xp, y - xp⟫_ℝ ≤ ⟪f' x, y - xp⟫_ℝ := by
+      have h1 : ⟪x - xp, y - xp⟫_ℝ ≤ 1 / β * ⟪f' x, y - xp⟫_ℝ := by linarith
+      calc β * ⟪x - xp, y - xp⟫_ℝ
+          ≤ β * (1 / β * ⟪f' x, y - xp⟫_ℝ) := mul_le_mul_of_nonneg_left h1 hβ.le
+        _ = ⟪f' x, y - xp⟫_ℝ := by field_simp
+    -- Rewrite both sides using (xp-y) = -(y-xp)
+    rw [show xp - y = -(y - xp) from by abel, inner_neg_right, inner_neg_right,
+        real_inner_smul_left']
+    -- Goal: -⟪f'x, y-xp⟫ ≤ -(β * ⟪x-xp, y-xp⟫)
+    linarith
+  -- Step 2: Upper sandwich bound at (xp, x): f(xp) - f(x) ≤ ⟪f'x, xp-x⟫ + β/2 ‖xp-x‖²
+  have hsmooth : f xp - f x ≤ ⟪f' x, xp - x⟫_ℝ + β / 2 * ‖xp - x‖ ^ 2 := by
+    linarith [hup xp x]
+  -- Step 3: Lower sandwich bound at (y, x): 0 ≤ f(y) - f(x) - ⟪f'x, y-x⟫
+  --   → f(x) - f(y) ≤ ⟪f'x, x-y⟫
+  have hconv : f x - f y ≤ ⟪f' x, x - y⟫_ℝ := by
+    have h := hlo y x
+    have hflip : ⟪f' x, y - x⟫_ℝ = -⟪f' x, x - y⟫_ℝ := by
+      rw [show y - x = -(x - y) from by abel, inner_neg_right]
+    linarith
+  -- Combine Steps 2 and 3: f(xp) - f(y) ≤ ⟪f'x, xp-y⟫ + β/2 ‖xp-x‖²
+  have hcomb : f xp - f y ≤ ⟪f' x, xp - y⟫_ℝ + β / 2 * ‖xp - x‖ ^ 2 := by
+    have hsplit : ⟪f' x, xp - y⟫_ℝ = ⟪f' x, xp - x⟫_ℝ + ⟪f' x, x - y⟫_ℝ := by
+      rw [← inner_add_right]; congr 1; abel
+    linarith
+```
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Display name | Lemma 3.6 |
+| Proof file status | `present` |
+| Tracker status | `proved` |
+| Computed status | `proved` |
+| Proof time | 11m 30s |
+| Lean file | [proofs/Bubeck_convex_optimization/Lemma36.lean](https://github.com/zwyhahaha/FormalTextbooks/blob/main/proofs/Bubeck_convex_optimization/Lemma36.lean) |
+| Source section | [papers/Bubeck_convex_optimization/sections/03_02_01_the_constrained_case.md](https://github.com/zwyhahaha/FormalTextbooks/blob/main/papers/Bubeck_convex_optimization/sections/03_02_01_the_constrained_case.md) |
+
+## Dependencies
+
+- Reuse Optlib gradient-descent interfaces wherever the book statement is only a wrapper around a stronger library theorem.
+
+## Chapter Blockers
+
+- Several later theorems depend on stronger reusable templates for accelerated arguments.
+
+## Nearby Results
+
+- Previous: [Theorem 3.3](./theorem-3-3.md)
+- Next: [Theorem 3.7](./theorem-3-7.md)

@@ -1,0 +1,245 @@
+:root {
+  --portal-ink: #16212d;
+  --portal-muted: #5c6673;
+  --portal-panel: #fffdfa;
+  --portal-panel-strong: #f5efe3;
+  --portal-border: #d6c8b3;
+  --portal-accent: #9d4f2e;
+  --portal-accent-soft: #f3d6bf;
+  --portal-accent-dark: #6f2e13;
+  --portal-success-bg: #d7f7e8;
+  --portal-success-fg: #0f5c3c;
+  --portal-warn-bg: #fff1c9;
+  --portal-warn-fg: #7b5a00;
+  --portal-info-bg: #e6eef9;
+  --portal-info-fg: #174a7e;
+  --portal-fail-bg: #f9d8d8;
+  --portal-fail-fg: #8f1f1f;
+}
+
+body,
+input,
+button {
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  color: var(--portal-ink);
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  letter-spacing: 0.01em;
+}
+
+.md-main {
+  background:
+    radial-gradient(circle at top left, rgba(243, 214, 191, 0.35), transparent 32rem),
+    linear-gradient(180deg, #fffaf0 0%, #fffdfa 18rem, #fff 100%);
+}
+
+.hero-panel {
+  padding: 1.6rem;
+  border: 1px solid var(--portal-border);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(135deg, rgba(243, 214, 191, 0.9), rgba(255, 253, 250, 0.95)),
+    var(--portal-panel);
+  box-shadow: 0 1.25rem 3rem rgba(29, 31, 36, 0.08);
+}
+
+.hero-panel h1 {
+  margin-top: 0;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0 1.4rem;
+}
+
+.metric-card {
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--portal-border);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0.7rem 1.8rem rgba(22, 33, 45, 0.05);
+}
+
+.metric-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--portal-muted);
+}
+
+.metric-value {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.55rem;
+  font-weight: 700;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.portal-card,
+.roadmap-panel {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--portal-border);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0.8rem 1.7rem rgba(25, 28, 34, 0.05);
+}
+
+.portal-card h3 {
+  margin-top: 0;
+}
+
+.chip-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0 1rem;
+}
+
+.chip-link,
+.filter-chip,
+.roadmap-pill,
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.chip-link {
+  text-decoration: none;
+  border: 1px solid var(--portal-border);
+  background: var(--portal-panel);
+  color: var(--portal-accent-dark);
+}
+
+.chip-link.active,
+.chip-link:hover {
+  background: var(--portal-accent-soft);
+  border-color: var(--portal-accent);
+}
+
+.filter-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0 1rem;
+}
+
+.filter-chip {
+  cursor: pointer;
+  border: 1px solid var(--portal-border);
+  background: #fff;
+  color: var(--portal-ink);
+}
+
+.filter-chip.active {
+  background: var(--portal-accent);
+  border-color: var(--portal-accent);
+  color: #fff;
+}
+
+.status-badge {
+  border: 1px solid transparent;
+}
+
+.status-proved {
+  background: var(--portal-success-bg);
+  color: var(--portal-success-fg);
+}
+
+.status-partial {
+  background: var(--portal-warn-bg);
+  color: var(--portal-warn-fg);
+}
+
+.status-pending {
+  background: var(--portal-info-bg);
+  color: var(--portal-info-fg);
+}
+
+.status-failed {
+  background: var(--portal-fail-bg);
+  color: var(--portal-fail-fg);
+}
+
+.roadmap-pill {
+  border: 1px solid transparent;
+  margin-right: 0.35rem;
+}
+
+.roadmap-done {
+  background: var(--portal-success-bg);
+  color: var(--portal-success-fg);
+}
+
+.roadmap-in-progress {
+  background: var(--portal-accent-soft);
+  color: var(--portal-accent-dark);
+}
+
+.roadmap-planned,
+.roadmap-exploratory,
+.roadmap-medium,
+.roadmap-low {
+  background: #efe7da;
+  color: #624e32;
+}
+
+.roadmap-blocked,
+.roadmap-critical,
+.roadmap-high {
+  background: #f4d7cf;
+  color: #7d2f1a;
+}
+
+.md-typeset table:not([class]) {
+  border-radius: 0.9rem;
+  overflow: hidden;
+  box-shadow: 0 0.6rem 1.4rem rgba(20, 25, 31, 0.04);
+}
+
+.md-typeset table:not([class]) th {
+  background: rgba(245, 239, 227, 0.85);
+}
+
+.is-hidden-by-filter {
+  display: none;
+}
+
+@media screen and (max-width: 760px) {
+  .hero-panel,
+  .portal-card,
+  .roadmap-panel {
+    padding: 0.9rem;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

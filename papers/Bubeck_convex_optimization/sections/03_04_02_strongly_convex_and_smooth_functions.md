@@ -21,13 +21,14 @@ theorems:
 lean_files:
 - id: Theorem 3.10
   path: proofs/Bubeck_convex_optimization/Theorem310.lean
-  status: pending
+  status: proved
 - id: Lemma 3.11
   path: proofs/Bubeck_convex_optimization/Lemma311.lean
-  status: pending
+  status: proved
 - id: Theorem 3.12
   path: proofs/Bubeck_convex_optimization/Theorem312.lean
-  status: pending
+  status: proved
+
 ---
 
 \subsection{Strongly convex and smooth functions}

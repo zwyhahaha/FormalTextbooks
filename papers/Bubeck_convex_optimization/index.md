@@ -26,9 +26,9 @@
 | Lemma 3.5 |  | 3.2 | Gradient descent for smooth functions | proofs/Bubeck_convex_optimization/Lemma35.lean | proved | 8m 1s |
 | Theorem 3.8 |  | 3.3 | Conditional gradient descent, aka Frank-Wolfe | proofs/Bubeck_convex_optimization/Theorem38.lean | proved | 23m 40s |
 | Theorem 3.9 |  | 3.4.1 | Strongly convex and Lipschitz functions | proofs/Bubeck_convex_optimization/Theorem39.lean | proved | 2m 39s |
-| Theorem 3.10 |  | 3.4.2 | Strongly convex and smooth functions | proofs/Bubeck_convex_optimization/Theorem310.lean | pending | — |
-| Lemma 3.11 |  | 3.4.2 | Strongly convex and smooth functions | proofs/Bubeck_convex_optimization/Lemma311.lean | pending | — |
-| Theorem 3.12 |  | 3.4.2 | Strongly convex and smooth functions | proofs/Bubeck_convex_optimization/Theorem312.lean | pending | — |
+| Theorem 3.10 |  | 3.4.2 | Strongly convex and smooth functions | proofs/Bubeck_convex_optimization/Theorem310.lean | proved | 15m 20s |
+| Lemma 3.11 |  | 3.4.2 | Strongly convex and smooth functions | proofs/Bubeck_convex_optimization/Lemma311.lean | proved | 25m 37s |
+| Theorem 3.12 |  | 3.4.2 | Strongly convex and smooth functions | proofs/Bubeck_convex_optimization/Theorem312.lean | proved | 2m 42s |
 | Theorem 3.13 |  | 3.5 | Lower bounds | proofs/Bubeck_convex_optimization/Theorem313.lean | pending | — |
 | Theorem 3.14 |  | 3.5 | Lower bounds | proofs/Bubeck_convex_optimization/Theorem314.lean | pending | — |
 | Theorem 3.15 |  | 3.5 | Lower bounds | proofs/Bubeck_convex_optimization/Theorem315.lean | pending | — |

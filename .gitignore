@@ -9,7 +9,9 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-docs/
 *.egg-info/
+site/
 
 # macOS
 .DS_Store
@@ -18,3 +20,22 @@ __pycache__/
 papers/*/original.pdf
 
 .claude/settings.local.json
+
+# Private / internal
+docs/plans/
+logs/
+textbook/
+goal.md
+sample-informal-proof.md
+report/
+
+# Demo and older versions
+papers/Bubeck15/
+papers/demo_lecture/
+proofs/demo/
+proofs/demo_lecture/
+
+# Test files for internal scripts only
+tests/test_preprocess.py
+tests/test_preprocess_tex.py
+tests/test_preprocess_textbook.py

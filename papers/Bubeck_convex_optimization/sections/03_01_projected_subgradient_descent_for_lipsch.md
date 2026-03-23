@@ -15,7 +15,8 @@ theorems:
 lean_files:
 - id: Theorem 3.2
   path: proofs/Bubeck_convex_optimization/Theorem32.lean
-  status: pending
+  status: proved
+
 ---
 
 \section{Projected subgradient descent for Lipschitz functions} \label{sec:psgd}

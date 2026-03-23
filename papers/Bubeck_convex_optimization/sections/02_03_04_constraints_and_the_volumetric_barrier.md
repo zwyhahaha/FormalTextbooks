@@ -24,7 +24,7 @@ theorems:
 lean_files:
 - id: Lemma 2.5
   path: proofs/Bubeck_convex_optimization/Lemma25.lean
-  status: pending
+  status: partial
 - id: Theorem 2.6
   path: proofs/Bubeck_convex_optimization/Theorem26.lean
   status: pending

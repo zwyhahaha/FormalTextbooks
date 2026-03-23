@@ -18,10 +18,11 @@ theorems:
 lean_files:
 - id: Proposition 1.6
   path: proofs/Bubeck_convex_optimization/Proposition16.lean
-  status: pending
+  status: proved
 - id: Proposition 1.7
   path: proofs/Bubeck_convex_optimization/Proposition17.lean
-  status: pending
+  status: proved
+
 ---
 
 \section{Why convexity?}

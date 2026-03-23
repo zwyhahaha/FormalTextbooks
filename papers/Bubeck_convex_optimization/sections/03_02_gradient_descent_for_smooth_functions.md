@@ -21,7 +21,7 @@ theorems:
 lean_files:
 - id: Theorem 3.3
   path: proofs/Bubeck_convex_optimization/Theorem33.lean
-  status: pending
+  status: proved
 - id: Lemma 3.4
   path: proofs/Bubeck_convex_optimization/Lemma34.lean
   status: proved

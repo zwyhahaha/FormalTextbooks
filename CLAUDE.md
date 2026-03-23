@@ -18,42 +18,10 @@ User: "Formalize the proof in sample-informal-proof.md"
   → Append entry to logs/proofs.log
 ```
 
-### Workflow B — PDF → Sections → Prove a theorem
-```bash
-# Step 1: drop the PDF in place
-cp my_paper.pdf papers/my_paper/original.pdf
-
-# Step 2: preprocess (converts + splits into sections)
-python scripts/preprocess.py papers/my_paper/original.pdf
-# → writes papers/my_paper/full.md
-# → writes papers/my_paper/sections/01_intro.md, 02_convergence.md, ...
-# → appends entry to logs/pipeline.log
-
-# Step 3: inspect sections
-ls papers/my_paper/sections/
-cat papers/my_paper/sections/02_convergence.md
-
-# Step 4: in Claude Code, ask:
-# "Prove Theorem 2.1 from papers/my_paper/sections/02_convergence.md"
-#   → Claude reads the section, creates proofs/my_paper/Theorem21.lean
-#   → Run /lean4:autoprove or /lean4:prove
-#   → Run /lean4:checkpoint
-#   → Append entry to logs/proofs.log
-```
-
-### Demo (already preprocessed — no PDF needed)
-```
-# The demo_lecture paper is already split. Try:
-"Prove Theorem 2.1 from papers/demo_lecture/sections/02_gradient_descent.md"
-```
-
----
-
 ### Workflow C — Textbook → Subsections → Prove a theorem
 
 Use `scripts/preprocess_textbook.py` for textbooks (subsection-level splitting with theorem
-detection and a master index). Unlike Workflow B, each output file covers one subsection
-(e.g. §1.1, §1.2) rather than one chapter.
+detection and a master index).
 
 ```bash
 # Step 1: fast unit test — process only Chapter 1 (instant, pdfminer quality)
@@ -197,15 +165,26 @@ print('Logged.')
 1. Read the target section file: `papers/<title>/sections/NN_<section>.md`
 2. Identify the theorem to formalize (statement + hypotheses)
 3. **Check optlib first**: `ls .lake/packages/optlib/Optlib/` — the theorem may already exist
-4. Create `proofs/<title>/TheoremName.lean` with imports + theorem + `sorry` placeholder
+4. Create `proofs/<title>/TheoremName.lean` using the template below
 5. Run `/lean4:autoprove` for autonomous proof search, or `/lean4:prove` to stay interactive
-6. Run `/lean4:checkpoint` when done to verify build + axioms + commit
-7. Append entry to `logs/proofs.log`
+6. **Verify with `lake env lean proofs/<title>/TheoremName.lean`** after every edit — authoritative check
+7. Run `/lean4:checkpoint` when done to verify build + axioms + commit
+8. Append entry to `logs/proofs.log`
+9. **Update index**: set the theorem's status to `proved` in `papers/<title>/index.md`
+   (change `| pending |` → `| proved |` on the matching row)
+
+> Tip: use `/prove-theorem "<ID>"` to run steps 2–9 automatically.
 
 ### Proof file template
 ```lean
-import Mathlib
-import Optlib
+-- IMPORTS: Start with the specific Optlib module needed.
+-- Do NOT write `import Mathlib` — it forces the LSP to load the entire library (~10 min).
+-- Instead add targeted Mathlib imports only for things optlib doesn't already re-export.
+-- Use `import Mathlib` only temporarily during active lemma search, then trim.
+set_option linter.unusedSectionVars false  -- suppress false positives from `variable` blocks
+
+import Optlib.Convex.ConvexFunction   -- replace with the relevant Optlib module
+-- import Mathlib.Analysis.Calculus.Deriv.Slope  -- add specific Mathlib imports as needed
 
 -- [Theorem name from paper]
 -- Source: papers/<title>/sections/NN_<section>.md
@@ -213,6 +192,61 @@ import Optlib
 theorem TheoremName (hyp1 : ...) (hyp2 : ...) : conclusion := by
   sorry
 ```
+
+### Import discipline
+| Phase | Imports |
+|-------|---------|
+| Proof exploration (finding lemmas) | `import Mathlib` temporarily OK |
+| Proof complete / being polished | Switch to specific imports |
+| After trimming | Verify with `lake env lean` — no errors, no warnings |
+
+To find which specific Mathlib module contains a lemma `Foo.bar`:
+```bash
+grep -r "theorem Foo.bar\|lemma Foo.bar" .lake/packages/mathlib/Mathlib --include="*.lean" -l
+```
+
+### Verification ladder — always use in this order
+
+```bash
+# 1. Per-file gate (ALWAYS use this — bypasses .olean cache, elaborates from source):
+lake env lean proofs/<title>/TheoremName.lean
+
+# 2. Project gate (after per-file passes — checks the whole build graph):
+lake build
+
+# NEVER rely solely on `lake build` to verify a single file.
+# lake build skips files whose hash matches the cached .olean,
+# so a freshly-edited file can appear to build while still having errors.
+```
+
+Also note: the LSP info view lags behind both commands — after editing a file,
+always run `lake env lean <file>` rather than trusting the info view to be current.
+
+### Agent rules — enforced for all lean4 agents
+
+These rules apply to every `/lean4:autoprove`, `/lean4:prove`, sorry-filler, and proof-repair invocation:
+
+1. **Verification command**: always run `lake env lean <file>` to confirm a proof compiles.
+   Never claim success based on `lake build` alone — it can use stale `.olean` cache.
+
+2. **Imports**: never write `import Mathlib` in the final file.
+   Start from the relevant `Optlib.*` module and add specific `Mathlib.*` imports only as needed.
+   `import Mathlib` is allowed temporarily during lemma search, but must be trimmed before declaring done.
+
+3. **Module algebra**: never use `ring` for goals involving `•` (scalar multiplication) in a module.
+   Use `simp [smul_sub, sub_smul, one_smul]` followed by `abel` instead.
+
+4. **Filter notation**: `𝓝[≠]`, `𝓝[>]`, `𝓝` require `open Topology`.
+   Always include `open Topology` when using neighbourhood filters.
+
+5. **`HasGradientAt` vs `HasFDerivAt`**: optlib uses `HasGradientAt`; Mathlib chain-rule lemmas
+   (`HasFDerivAt.comp_hasDerivAt`) expect `HasFDerivAt`. Convert with
+   `rw [hasGradientAt_iff_hasFDerivAt] at h` and note the point must match syntactically.
+
+6. **`IsMinOn`**: it is filter-based. Unfold with `rw [isMinOn_iff]` before introducing variables.
+
+7. **Warning-free target**: a finished proof file must produce zero output from
+   `lake env lean <file>` — no errors AND no warnings.
 
 ### MCP tools available during proving
 | Tool | When to use |
@@ -236,7 +270,8 @@ theorem TheoremName (hyp1 : ...) (hyp2 : ...) : conclusion := by
 ## File Conventions
 - One theorem per `.lean` file in `proofs/<paper-title>/`
 - Name files after the theorem (e.g., `GradientDescentConvergence.lean`)
-- Always import `Mathlib` and `Optlib` (or specific submodules) at top
+- Import specific Optlib submodules + targeted Mathlib modules (never bare `import Mathlib` in finished files)
+- Add `set_option linter.unusedSectionVars false` when using `variable` blocks
 
 ## Scripts
 

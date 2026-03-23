@@ -1,0 +1,46 @@
+site_name: Bubeck Formalization
+site_description: Progress and theorem statements for the Bubeck convex optimization formalization project
+docs_dir: site_docs
+site_dir: site
+strict: false
+repo_name: formal verification/prover
+theme:
+  name: material
+  features:
+    - navigation.top
+    - navigation.sections
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+    - toc.follow
+plugins:
+  - search
+markdown_extensions:
+  - tables
+  - attr_list
+  - md_in_html
+  - pymdownx.arithmatex:
+      generic: true
+      inline_syntax:
+        - dollar
+        - round
+      block_syntax:
+        - dollar
+        - square
+        - begin
+  - pymdownx.superfences
+  - pymdownx.details
+extra_css:
+  - stylesheets/extra.css
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - javascripts/site.js
+nav:
+  - Home: index.md
+  - Chapter 1: generated/books/Bubeck_convex_optimization/chapters/chapter-1.md
+  - Chapter 2: generated/books/Bubeck_convex_optimization/chapters/chapter-2.md
+  - Chapter 3: generated/books/Bubeck_convex_optimization/chapters/chapter-3.md
+  - Chapter 4: generated/books/Bubeck_convex_optimization/chapters/chapter-4.md
+  - Chapter 5: generated/books/Bubeck_convex_optimization/chapters/chapter-5.md
+  - Chapter 6: generated/books/Bubeck_convex_optimization/chapters/chapter-6.md

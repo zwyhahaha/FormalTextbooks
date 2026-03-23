@@ -18,10 +18,11 @@ theorems:
 lean_files:
 - id: Theorem 2.1
   path: proofs/Bubeck_convex_optimization/Theorem21.lean
-  status: pending
+  status: partial
 - id: Lemma 2.2
   path: proofs/Bubeck_convex_optimization/Lemma22.lean
-  status: pending
+  status: partial
+
 ---
 
 \section{The center of gravity method} \label{sec:gravity}

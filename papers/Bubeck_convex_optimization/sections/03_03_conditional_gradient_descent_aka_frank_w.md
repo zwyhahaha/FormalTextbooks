@@ -15,7 +15,8 @@ theorems:
 lean_files:
 - id: Theorem 3.8
   path: proofs/Bubeck_convex_optimization/Theorem38.lean
-  status: pending
+  status: proved
+
 ---
 
 \section{Conditional gradient descent, aka Frank-Wolfe} \label{sec:FW}
